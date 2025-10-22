@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "ikartoons-chatbot-7b2b6"
+  },
+  "targets": {
+    "ikartoons-chatbot-7b2b6": {
+      "hosting": {
+        "songs2clips": [
+          "songs2clips-ikartoons-org"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

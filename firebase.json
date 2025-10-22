@@ -1,0 +1,14 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/chat", "run": { "serviceId": "song2clips-api", "region": "us-central1" } },
+      { "source": "/transcribe", "run": { "serviceId": "song2clips-api", "region": "us-central1" } },
+      { "source": "/runway/**", "run": { "serviceId": "song2clips-api", "region": "us-central1" } },
+      { "source": "/health", "run": { "serviceId": "song2clips-api", "region": "us-central1" } },
+      { "source": "/env/openai-key", "run": { "serviceId": "song2clips-api", "region": "us-central1" } },
+      { "source": "/**", "run": { "serviceId": "song2clips-api", "region": "us-central1" } }
+    ]
+  }
+}

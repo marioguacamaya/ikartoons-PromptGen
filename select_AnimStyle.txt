@@ -1,0 +1,159 @@
+<select id="animStyle" title="Animation style">
+  <optgroup label="Animación (técnica)">
+    <option>Cartoon</option>
+    <option>Anime</option>
+    <option>Ghibli</option>
+    <option>Disney</option>
+    <option>Pixar</option>
+    <option>DreamWorks</option>
+    <option>Stop-motion</option>
+    <option>Claymation</option>
+    <option>Cut-out animation</option>
+    <option>Papercraft animation</option>
+    <option>Whiteboard animation</option>
+    <option>Line-art animation</option>
+    <option>Flat 2D</option>
+    <option>Vector animation</option>
+    <option>Cel-shaded</option>
+    <option>Toon shader</option>
+    <option>Hand-drawn</option>
+    <option>Watercolor animation</option>
+    <option>Ink-wash animation</option>
+    <option>Pencil-sketch animation</option>
+    <option>Chalkboard animation</option>
+    <option>Marker-style animation</option>
+    <option>Crayon animation</option>
+    <option>Oil-paint animation</option>
+    <option>Gouache animation</option>
+    <option>Pastel animation</option>
+    <option>Collage animation</option>
+    <option>Pixel art</option>
+    <option>8-bit</option>
+    <option>16-bit</option>
+    <option>Low-poly animation</option>
+    <option>Isometric animation</option>
+    <option>2.5D parallax</option>
+    <option>Rubber-hose</option>
+    <option>Limited animation</option>
+    <option>Rotoscope</option>
+    <option>Motion graphics</option>
+    <option>Kinetic typography</option>
+    <option>Motion comic</option>
+    <option>LEGO brickfilm</option>
+  </optgroup>
+
+  <optgroup label="Arte / Render">
+    <option>Photorealistic</option>
+    <option>Hyperrealistic</option>
+    <option>Real-time 3D</option>
+    <option>PBR</option>
+    <option>Sketchbook</option>
+    <option>Comic-book</option>
+    <option>Manga</option>
+    <option>Graphic novel</option>
+    <option>Pop art</option>
+    <option>Minimalist</option>
+    <option>Flat design</option>
+    <option>Material design</option>
+    <option>Memphis design</option>
+    <option>Brutalist</option>
+    <option>Line-only</option>
+    <option>Silhouette</option>
+    <option>Noir</option>
+    <option>High-contrast</option>
+    <option>Pastel palette</option>
+    <option>Neon glow</option>
+    <option>Vaporwave</option>
+    <option>Synthwave</option>
+    <option>Retrowave</option>
+    <option>Y2K</option>
+    <option>VHS look</option>
+    <option>CRT emulation</option>
+    <option>Film grain</option>
+    <option>Watercolor render</option>
+    <option>Ink outline</option>
+    <option>Chiaroscuro</option>
+  </optgroup>
+
+  <optgroup label="Género / Estética">
+    <option>Cinematic</option>
+    <option>Documentary</option>
+    <option>Film noir</option>
+    <option>Neo-noir</option>
+    <option>Western</option>
+    <option>Spaghetti western</option>
+    <option>Fantasy</option>
+    <option>High fantasy</option>
+    <option>Dark fantasy</option>
+    <option>Gothic</option>
+    <option>Horror</option>
+    <option>Slasher</option>
+    <option>Thriller</option>
+    <option>Mystery</option>
+    <option>Detective</option>
+    <option>Sci-fi</option>
+    <option>Space opera</option>
+    <option>Mecha</option>
+    <option>Post-apocalyptic</option>
+    <option>Dystopian</option>
+    <option>Utopian</option>
+    <option>Steampunk</option>
+    <option>Dieselpunk</option>
+    <option>Solarpunk</option>
+    <option>Retrofuturism</option>
+    <option>Biopunk</option>
+    <option>Afrofuturism</option>
+    <option>Fairy-tale</option>
+    <option>Children’s TV</option>
+    <option>Educational explainer</option>
+    <option>Music video</option>
+    <option>Commercial</option>
+    <option>Product showcase</option>
+  </optgroup>
+
+  <optgroup label="Medio / Material">
+    <option>Clay</option>
+    <option>Paper craft</option>
+    <option>Origami</option>
+    <option>Cut paper collage</option>
+    <option>Sand animation</option>
+    <option>Paint-on-glass</option>
+    <option>Chalk</option>
+    <option>Charcoal</option>
+    <option>Pencil</option>
+    <option>Marker</option>
+    <option>Crayon</option>
+    <option>Watercolor</option>
+    <option>Oil paint</option>
+    <option>Acrylic paint</option>
+    <option>Pastel</option>
+    <option>Woodcut / Linocut</option>
+    <option>Etching</option>
+    <option>Quilted fabric</option>
+    <option>Needle-felt</option>
+    <option>Paper stop-motion</option>
+  </optgroup>
+
+  <optgroup label="Look técnico / Lente (por si quieres usarlos como estilo)">
+    <option>Black & white</option>
+    <option>Sepia</option>
+    <option>Duotone</option>
+    <option>Teal and orange</option>
+    <option>High key</option>
+    <option>Low key</option>
+    <option>Neon-lit</option>
+    <option>Backlit</option>
+    <option>Rim light</option>
+    <option>Volumetric light</option>
+    <option>Golden hour</option>
+    <option>Blue hour</option>
+    <option>Overcast</option>
+    <option>Anamorphic</option>
+    <option>16mm film</option>
+    <option>Super 8</option>
+    <option>35mm film</option>
+    <option>IMAX look</option>
+    <option>Tilt-shift</option>
+    <option>Glitch</option>
+  </optgroup>
+</select>
