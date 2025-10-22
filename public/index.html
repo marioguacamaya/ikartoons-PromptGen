@@ -2,9 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+  content="default-src 'self';
+           connect-src 'self' http://localhost:3001 https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://www.gstatic.com;
+           script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com;
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+           img-src 'self' data: https://firebasestorage.googleapis.com https://firebasestorage.app;
+           font-src 'self' https://fonts.gstatic.com;
+           media-src 'self' https:;
+           object-src 'none';
+           base-uri 'self';">
   <title>PromptGen - Generador de prompts</title>
   <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/ikartoons-chatbot-7b2b6.firebasestorage.app/o/images%2Fsongs2clips.png?alt=media&token=a12a4942-1371-4e09-aa7a-23c25b370c44" type="image/png">
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet" />
   <style>
     :root { --bg: #121212; --card: #171717; --ink: #E9EEF2; --muted: #A3ADBA; --accent1: #C9E33A; --accent2: #DBEA50; --bubbleUser: linear-gradient(90deg, #C9E33A 0%, #DBEA50 100%); --bubbleAi: linear-gradient(90deg, #1b1b1b 0%, #222222 100%); --side: #161616; --disabled: #2a2f37; }
@@ -91,7 +101,7 @@
         </div>
         <div class="auth-mini" style="margin-top: 5px;">* Debes iniciar sesión para usar la app.</div>
       </div>
-        <div style="font-size: x-small; margin-top: -7px; text-align: right;">v 1.15</div>
+        <div style="font-size: x-small; margin-top: -7px; text-align: right;">v 1.16</div>
           <button class="btn secondary" onclick="logout()" id="loggedout">Salir</button>
 
       <button class="btn" onclick="nuevoChat()">+ Nuevo chat</button>
@@ -226,14 +236,9 @@
   </footer>
 
   <script>
-    // Router al backend (soporta ?api=http://host:puerto)
-    const API = (() => {
-      const q = new URLSearchParams(location.search).get("api");
-      if (q) { try { localStorage.setItem("api", q); } catch {} return q; }
-      const saved = localStorage.getItem("api");
-      if (saved) return saved;
-      return (location.hostname === "localhost") ? "http://localhost:3001" : "";
-    })();
+    // Router al backend: en localhost usa 3001; en producción, same-origin
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const API = isLocal ? 'http://localhost:3001' : '';
     const api = (p) => (API ? `${API}${p}` : p);
 
     // ======= FIREBASE INIT =======
