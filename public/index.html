@@ -101,7 +101,7 @@
         </div>
         <div class="auth-mini" style="margin-top: 5px;">* Debes iniciar sesión para usar la app.</div>
       </div>
-        <div style="font-size: x-small; margin-top: -7px; text-align: right;">v 1.16</div>
+        <div style="font-size: x-small; margin-top: -7px; text-align: right;">v 1.17</div>
           <button class="btn secondary" onclick="logout()" id="loggedout">Salir</button>
 
       <button class="btn" onclick="nuevoChat()">+ Nuevo chat</button>
@@ -977,14 +977,32 @@ async function generateVideoPromptsFromChunks(chunks) {
     }
   }
 
-  // Parse directo de arguments (JSON siempre bien formado)
-  let args;
-  try {
-    args = JSON.parse(toolCall.function.arguments);
-  } catch (e) {
-    console.error("No pude parsear arguments del tool_call:", e, toolCall.function?.arguments);
-    return [];
-  }
+    // Parse directo de arguments (JSON siempre bien formado)
+    let args;
+    try {
+      args = JSON.parse(toolCall.function.arguments);
+    } catch (e) {
+      console.error("No pude parsear arguments del tool_call:", e, toolCall.function?.arguments);
+
+      // 🔧 Salvataje: extraer solo objetos de clip completos y armar { clips: [...] }
+      const clipped = [];
+      const raw = String(toolCall.function.arguments || "");
+
+      // Regex tolerante: toma objetos que tengan fragment, prompt y duration_s completos
+      const re = /\{[^{}]*"fragment"\s*:\s*"[^"]*"[^{}]*"prompt"\s*:\s*"[^"]*"[^{}]*"duration_s"\s*:\s*\d+[^{}]*\}/gs;
+      const matches = raw.matchAll(re);
+      for (const m of matches) {
+        try {
+          const obj = JSON.parse(m[0]);
+          clipped.push({
+            fragment: String(obj.fragment || "").trim(),
+            prompt: String(obj.prompt || "").trim(),
+            duration_s: Math.max(5, Math.min(10, parseInt(obj.duration_s, 10) || 6)),
+          });
+        } catch {}
+      }
+      return clipped.length ? clipped : [];
+    }
 
   const clips = Array.isArray(args?.clips) ? args.clips : [];
   // Normaliza y clampa duración (5–10)
