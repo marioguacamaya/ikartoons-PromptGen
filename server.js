@@ -2,172 +2,262 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import fs from "fs/promises";
-import { createReadStream } from "fs";
-import path from "path";
-import { OpenAI } from "openai";
 import admin from "firebase-admin";
-import { randomUUID } from "crypto";
-import { Readable } from "stream";
+import { OpenAI } from "openai";
 
-const svcB64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || "";
-const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+// módulos nuevos
+import { classifyIntent } from "./intentClassifier.js";
+import { buildContext } from "./contextAssembler.js";
+import { generatePrompt } from "./promptEngineer.js";
+import { updateMemory } from "./memoryManager.js";
+import { formatResponse } from "./outputFormatter.js";
 
-if (!admin.apps.length) {
-  const init = {
-    credential: svcB64
-      ? admin.credential.cert(JSON.parse(Buffer.from(svcB64, "base64").toString("utf8")))
-      : admin.credential.applicationDefault(),
-    storageBucket: bucketName,
-  };
-  admin.initializeApp(init);
-}
-const bucket = admin.storage().bucket();
-
-const PORT = process.env.PORT || 3001;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.error("FALTA OPENAI_API_KEY en variables de entorno");
-  process.exit(1);
-}
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
+// ===== INIT =====
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 60 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage() });
 
-// Health
-app.get("/", (req, res) => res.send("Servidor ok 👌"));
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// ===== FIREBASE =====
+const svcB64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || "";
+const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: svcB64
+      ? admin.credential.cert(JSON.parse(Buffer.from(svcB64, "base64").toString("utf8")))
+      : admin.credential.applicationDefault(),
+    storageBucket: bucketName
+  });
+}
+
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
+
+// ===== HEALTH =====
+app.get("/", (req, res) => res.send("OK"));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
-// Chat proxy (opcional)
+// =======================================================
+// 🔥 CORE CHAT ENDPOINT
+// =======================================================
 app.post("/chat", async (req, res) => {
   try {
-    const body = req.body;
-    const resp = await openai.chat.completions.create(body);
-    res.json(resp);
-  } catch (err) {
-    console.error("chat error", err);
-    res.status(500).json({ error: String(err.message || err) });
-  }
-});
+    const {
+      message,
+      sessionId,
+      modelId,
+      generatorId,
+      history = []
+    } = req.body;
 
-// Transcribe: recibe form-data con campo "audio"
-app.post("/transcribe", upload.single("audio"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No audio file provided" });
+    if (!message || !sessionId || !modelId || !generatorId) {
+      return res.status(400).json({ error: "Missing params" });
+    }
 
-    // Guardamos temporalmente (compatibilidad máxima)
-    const tmpDir = path.join(process.cwd(), "tmp_audio");
-    await fs.mkdir(tmpDir, { recursive: true });
-    const tmpPath = path.join(tmpDir, `${Date.now()}-${req.file.originalname || "audio.wav"}`);
-    await fs.writeFile(tmpPath, req.file.buffer);
+    // ===== 1. cargar modelo =====
+    const clientDoc = await db.collection("clientes").doc(modelId).get();
+    if (!clientDoc.exists) {
+      return res.status(404).json({ error: "Client not found" });
+    }
 
-    // Usamos el SDK para enviar el archivo
-    const transcription = await openai.audio.transcriptions.create({
-      file: createReadStream(tmpPath),
-      model: "whisper-1",
-      response_format: "json",
-      language: "es"
-    });
+    // 🔥 extraer generator desde cliente
+    const clientData = clientDoc.data();
+    const generator = (clientData.generators || []).find(g => g.id === generatorId);
 
-    // Limpieza
-    await fs.unlink(tmpPath).catch(() => null);
+    if (!generator) {
+      return res.status(404).json({ error: "Generator not found" });
+    }
 
-    // Normalizamos respuesta
-    const text = transcription?.text ?? (transcription?.data?.[0]?.text ?? "");
-    res.json({ text });
-  } catch (err) {
-    console.error("transcribe error:", err?.status || "", err?.message || err);
-    // Si viene payload de la API:
-    if (err?.response?.data) console.error("openai response:", err.response.data);
-    res.status(500).json({ error: String(err?.message || err) });
-  }
-});
+    const modelConfig = {
+      id: generator.id,
+      name: generator.name,
+      provider: generator.provider,
+      mode: generator.mode,
+      promptEngineerSystem: generator.promptEngineerSystem
+    };
 
-// ===== RUNWAY: crear tarea de texto a video =====
-app.post("/runway/generate", async (req, res) => {
-  try {
-    const { prompt, ratio = "16:9", duration = 5, model = "veo3", seed = null } = req.body || {};
-    if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+    // ===== 2. cargar memoria =====
+    const memRef = db.collection("sesiones").doc(sessionId).collection("memory").doc("core");
+    const memSnap = await memRef.get();
+    const sessionMemory = memSnap.exists ? memSnap.data() : {};
 
-    const r = await fetch("https://api.dev.runwayml.com/v1/text_to_video", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.RUNWAY_API_KEY}`,
-        "Content-Type": "application/json",
-        // Fija versión de API para estabilidad
-        "X-Runway-Version": "2024-11-06"
-      },
-      body: JSON.stringify({
-        model,           // p.ej. "veo3"
-        promptText: prompt,
-        ratio,           // "16:9" | "9:16" | "1:1" | etc.
-        duration,        // 5 o 10 (segundos, según el modelo)
-        ...(seed != null ? { seed } : {})
+    // ===== 3. cargar archivos contexto =====
+    const ctxSnap = await db
+      .collection("sesiones")
+      .doc(sessionId)
+      .collection("context_files")
+      .get();
+
+    const contextFiles = ctxSnap.docs.map(d => d.data());
+    const resolvedFiles = await Promise.all(
+      contextFiles.map(async (file) => {
+        const url = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(file.storagePath)}?alt=media`;
+
+        // IMÁGENES
+        if (file.mimeType.startsWith("image/")) {
+          return {
+            type: "input_image",
+            image_url: url
+          };
+        }
+
+        // TEXTO SIMPLE
+        if (file.mimeType.startsWith("text/")) {
+          const text = await fetch(url).then(r => r.text());
+          return {
+            type: "input_text",
+            text: text.slice(0, 4000)
+          };
+        }
+
+        // fallback (pdf, docx, etc.)
+        return {
+          type: "input_text",
+          text: `[Archivo adjunto: ${file.fileName}]`
+        };
       })
-    });
+    );
 
-    const data = await r.json();
-    if (!r.ok) return res.status(r.status).json(data);
-    // data incluye al menos un "id" de tarea
-    return res.json(data);
-  } catch (e) {
-    console.error("runway/generate error:", e);
-    return res.status(500).json({ error: String(e?.message || e) });
-  }
-});
+    // ===== 4. clasificar intención =====
+    const intentData = await classifyIntent(message, history);
 
-// ===== RUNWAY: consultar estado de la tarea =====
-app.get("/runway/tasks/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const r = await fetch(`https://api.dev.runwayml.com/v1/tasks/${id}`, {
-      headers: {
-        "Authorization": `Bearer ${process.env.RUNWAY_API_KEY}`,
-        "X-Runway-Version": "2024-11-06"
+    let promptPackage = null;
+    let chatText = "";
+
+    // ===== 5. ejecutar lógica =====
+    if (intentData.intent === "generate_prompt" || intentData.intent === "refine_prompt") {
+
+      const context = buildContext({
+        sessionMemory,
+        contextFiles,
+        history,
+        modelConfig
+      });
+
+      promptPackage = await generatePrompt({
+        userInput: message,
+        modelConfig,
+        sessionMemory: context.memory,
+        contextFiles: resolvedFiles,
+        history: context.history
+      });
+
+      if (promptPackage?.error) {
+        return res.status(500).json({
+          error: "Prompt generation failed"
+        });
       }
+
+      chatText = "Prompt generado.";
+
+      // guardar prompt
+      await db
+        .collection("sesiones")
+        .doc(sessionId)
+        .collection("prompt_generations")
+        .add({
+          modelId: modelConfig.id,
+          modelName: modelConfig.name,
+          provider: modelConfig.provider,
+          mode: modelConfig.mode,
+          ...promptPackage,
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+    } else {
+      // conversación normal
+      const response = await openai.responses.create({
+        model: "gpt-4o-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: message },
+              ...resolvedFiles
+            ]
+          }
+        ]
+      });
+
+      chatText = response.output_text || "";
+    }
+
+    // ===== 6. actualizar memoria =====
+    const newMemory = await updateMemory({
+      userMessage: message,
+      assistantMessage: chatText,
+      currentMemory: sessionMemory
     });
-    const data = await r.json();
-    return res.status(r.ok ? 200 : r.status).json(data);
-  } catch (e) {
-    console.error("runway/tasks error:", e);
-    return res.status(500).json({ error: String(e?.message || e) });
+
+    await memRef.set(newMemory, { merge: true });
+
+    // ===== 8. respuesta final =====
+    const response = formatResponse({
+      intent: intentData.intent,
+      modelConfig,
+      promptPackage,
+      chatText,
+      memoryUpdates: newMemory
+    });
+
+    res.json(response);
+
+  } catch (err) {
+    console.error("CHAT ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Guarda un MP4 de Runway en Firebase Storage (privado; sin mostrar)
-app.post("/runway/save-to-firebase", async (req, res) => {
+// =======================================================
+// 📁 CONTEXT FILE UPLOAD
+// =======================================================
+app.post("/context/upload", upload.single("file"), async (req, res) => {
   try {
-    const { url, meta } = req.body || {};
-    if (!url) return res.status(400).json({ error: "Missing url" });
+    const { sessionId } = req.body;
+    const file = req.file;
 
-    const filename = `runway/${Date.now()}_${Math.random().toString(36).slice(2,8)}.mp4`;
-    const file = bucket.file(filename);
+    if (!file || !sessionId) {
+      return res.status(400).json({ error: "Missing file or sessionId" });
+    }
 
-    // === SUBIR SIN STREAMS (simple) ===
-const resp = await fetch(url);
-if (!resp.ok) {
-  return res.status(502).json({ error: "Download failed", status: resp.status });
-}
-const buf = Buffer.from(await resp.arrayBuffer());
+    const filename = `sesiones/${sessionId}/${Date.now()}_${file.originalname}`;
+    const fileRef = bucket.file(filename);
 
-await file.save(buf, {
-  contentType: "video/mp4",
-  metadata: meta
-    ? Object.fromEntries(Object.entries(meta).map(([k, v]) => [k, String(v)]))
-    : {},
-  resumable: false
-});
+    await fileRef.save(file.buffer, {
+      contentType: file.mimetype
+    });
 
+    const [metadata] = await fileRef.getMetadata();
 
-    return res.json({ ok: true, storagePath: filename, bucket: bucket.name });
-  } catch (e) {
-    return res.status(500).json({ error: String(e?.message || e) });
+    const data = {
+      fileName: file.originalname,
+      storagePath: filename,
+      mimeType: file.mimetype,
+      role: "context",
+      downloadToken: metadata.metadata.firebaseStorageDownloadTokens,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db
+      .collection("sesiones")
+      .doc(sessionId)
+      .collection("context_files")
+      .add(data);
+
+    res.json(data);
+
+  } catch (err) {
+    console.error("UPLOAD ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
+// ===== START =====
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));

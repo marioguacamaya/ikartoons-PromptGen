@@ -3,79 +3,1006 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-  content="default-src 'self';
-           connect-src 'self' http://localhost:3001 https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://www.gstatic.com;
-           script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com;
-           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-           img-src 'self' data: https://firebasestorage.googleapis.com https://firebasestorage.app;
-           font-src 'self' https://fonts.gstatic.com;
-           media-src 'self' https:;
-           object-src 'none';
-           base-uri 'self';">
-  <title>PromptGen - Generador de prompts</title>
-  <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/ikartoons-chatbot-7b2b6.firebasestorage.app/o/images%2Fsongs2clips.png?alt=media&token=a12a4942-1371-4e09-aa7a-23c25b370c44" type="image/png">
-
+    content="default-src 'self';
+             connect-src 'self' http://localhost:3001 https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://www.gstatic.com https://firebasestorage.googleapis.com https://firebasestorage.app;
+             script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com;
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+             img-src 'self' data: https://firebasestorage.googleapis.com https://firebasestorage.app;
+             font-src 'self' https://fonts.gstatic.com;
+             media-src 'self' https:;
+             object-src 'none';
+             base-uri 'self';">
+  <title>Generador de prompts · iKartoons</title>
+  <link rel="icon" href="../logo.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet" />
+
   <style>
-    :root { --bg: #121212; --card: #171717; --ink: #E9EEF2; --muted: #A3ADBA; --accent1: #C9E33A; --accent2: #DBEA50; --bubbleUser: linear-gradient(90deg, #C9E33A 0%, #DBEA50 100%); --bubbleAi: linear-gradient(90deg, #1b1b1b 0%, #222222 100%); --side: #161616; --disabled: #2a2f37; }
-    * { box-sizing: border-box; }
-    body { font-family: 'Montserrat', Arial, sans-serif; background: var(--bg); margin: 0; color: var(--ink); }
-    .app {display: grid;grid-template-columns: 280px 1fr;gap: 16px;max-width: 1400px;margin: 24px auto;padding: 0 16px 24px;}
-    /* ===== Sidebar (historial) ===== */
-    .sidebar {background: var(--side);border: 1px solid #242424;border-radius: 14px;padding: 14px; height: calc(100vh - 72px);position: sticky; top: 24px;display: flex; flex-direction: column; gap: 10px;}
-    .side-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .side-title { font-weight:700; font-size:0.92em; }
-    .auth-mini { font-size: .65em; color: var(--muted); }
-    .history-list { flex:1; overflow:auto; padding-right:6px; }
-    .hist-item { padding:8px; border-radius:8px; margin:6px 0; background:var(--card); text-align: left;  border:1px solid #2a2a2a; cursor:pointer; line-height:1.2em; font-size: 0.8em; }
-    .hist-item:hover { background:#1f1f1f; }
-    .auth-box { background:var(--card); border:1px solid #2a2a2a; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
-    .auth-box input { width:100%; padding:8px 10px; border:1.5px solid #30363d; border-radius:8px; background:#141414; color: var(--ink); }
-    .auth-actions { display:flex; gap:8px; }
-    .btn { border:none; border-radius:8px; padding:8px 10px; cursor:pointer; font-weight:600; background: linear-gradient(90deg, var(--accent1) 0%, var(--accent2) 100%); color:#111; }
-    .btn.secondary { background:#1f1f1f; color:var(--ink); border:1px solid #2a2a2a; }
-    .container {background: var(--card);border-radius: 20px; box-shadow: 0 10px 32px 0 rgba(0,0,0,.35); width: 100%; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
-    h2 { text-align: center; margin: 0; font-size: 1.35em; font-weight: 700; letter-spacing: .02em; }
-    .subtitle { text-align: center; font-size: .85em; color: var(--muted); margin-top: -6px; }
-    #chat {background: #151515;border-radius: 15px;min-height: 220px;max-height: 420px;padding: 18px 10px 10px 10px;overflow-y: auto;display: flex; flex-direction: column; gap: 11px; box-shadow: 0 2px 12px 0 rgba(0,0,0,.35);flex: 1;overflow-y:auto; display:flex; flex-direction:column; justify-content: flex-end;}
-    .bubble { display:inline-block; padding:10px 18px; border-radius:20px; max-width:88%; word-break: break-word; font-size:1.02em; margin-bottom:2px; box-shadow:0 1px 3px 0 rgba(0,0,0,.25); line-height:1.35em; }
-    .user { align-self:flex-end; background:var(--bubbleUser); color:#111; border-bottom-right-radius:5px; }
-    .ia   { align-self:flex-start; background:var(--bubbleAi); color:var(--ink); border-bottom-left-radius:5px; }
-    .meta { font-size:.83em; color:var(--muted); margin-left:7px; }
-    .input-row { display:grid; grid-template-columns: 1fr auto; gap:10px; width:100%; }
-    #input { font-size:1.05em; padding:11px 14px; border-radius:12px; border:1.5px solid #30363d; background:#141414; color: var(--ink); outline:none; }
-    #input:focus { border:1.5px solid #DBEA50; background:#1a1a1a; }
-    .send-btn { background: linear-gradient(90deg, var(--accent1) 0%, var(--accent2) 100%); color:#111; border:none; border-radius:10px; padding:0 18px; font-size:1.1em; font-weight:bold; cursor:pointer; box-shadow:0 3px 16px -5px rgba(219,234,80,.45); height:44px; }
-    .files-row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:100%; }
-    #fileInput { border:1.5px solid #30363d; border-radius:12px; background:#141414; color: var(--ink); padding:9px 10px; }
-    #dropZone { border:1.5px dashed #30363d; border-radius:12px; padding:10px; text-align:center; background:#141414; font-size:.8em; color:var(--muted); }
-    #dropZone.dragover { background:#1a1a1a; border-color:#DBEA50; }
-    .hint { font-size:.88em; color:var(--muted); text-align:center; }
-    input:disabled, .send-btn:disabled { background:#2a2f37 !important; color:#9aa3ad !important; border-color:#3a3f47 !important; opacity:.65; cursor:not-allowed !important; box-shadow:none !important;}
-    .blocked { pointer-events:none; opacity:0.6; }
-    code.inline { background:#1e1e1e; padding:2px 6px; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
-    @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .sidebar { position: relative; height:auto; } }
-    .auth-box {display: flex;flex-direction: column;align-items: stretch;gap: 12px;}
-    .auth-actions { display: flex; flex-direction: column; gap: 8px; }
-    .sidebar > .btn { width: 100%; margin-top: 8px; }
-    .hist-item.selected {background: #1f1f1f;border-color: #DBEA50;outline: none solid #DBEA50;}
-    .input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; width: 100%; }
-    .logo {display: block;width: 150px;margin: -5px auto -40px auto;}
-    /* ==== Style Guide Modal (tema Ikartoons) ==== */
-    #styleGuideModal { background: rgba(0,0,0,.6) !important;   /* overlay */}
-    #styleGuideModal > div {background: var(--card) !important;color: var(--ink) !important;border-radius: 16px !important;box-shadow: 0 10px 32px rgba(0,0,0,.4) !important;}
-    #styleGuideModal > div > div:first-child { /* header */border-bottom: 1px solid var(--disabled) !important;}
-    #styleGuideModal strong { color: var(--ink) !important; }
-    #styleGuideModal p { color: var(--muted) !important; }
-    #styleGuideModal textarea {background: var(--side) !important;color: var(--ink) !important;border: 1.5px solid var(--disabled) !important;border-radius: 10px !important;}
-    #styleGuideModal label { color: var(--ink) !important; }
-    #styleGuideModal button[onclick="closeStyleGuideModal()"] {background: var(--side) !important;color: var(--ink) !important;border: 1px solid var(--disabled) !important;}
-    #styleGuideModal .btn.secondary {background: var(--side) !important;color: var(--ink) !important;border: 1px solid var(--disabled) !important;}
-    #styleGuideModal .btn:not(.secondary) {background: linear-gradient(90deg, var(--accent1) 0%, var(--accent2) 100%) !important;color: #121212 !important;border: none !important;}
-    #styleGuideModal input[type="checkbox"]{ accent-color: var(--accent2) !important; }
+    :root {
+      --bg: #121212;
+      --bg-deep: #0a0a0a;
+      --card: #171717;
+      --card-elevated: #1e1e1e;
+      --ink: #E9EEF2;
+      --muted: #A3ADBA;
+      --accent1: #C9E33A;
+      --accent2: #DBEA50;
+      --accent-glow: rgba(201, 227, 58, 0.15);
+      --bubbleUser: linear-gradient(135deg, #C9E33A 0%, #DBEA50 100%);
+      --bubbleAi: linear-gradient(135deg, #1f1f1f 0%, #2a2a2a 100%);
+      --side: #161616;
+      --disabled: #2a2f37;
+      --line: #2a2a2a;
+      --inputLight: #f8fbff;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated Background */
+       /* ============================================
+       FONDO FLUIDO PROFESIONAL
+       ============================================ */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      /* Color base sólido por si acaso */
+      background: var(--bg);
+    }
+
+    .bg-flow {
+      position: absolute;
+      width: 200vw;
+      height: 200vh;
+      top: -50%;
+      left: -50%;
+      background: 
+        radial-gradient(circle at 30% 30%, rgba(201, 227, 58, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(219, 234, 80, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(201, 227, 58, 0.04) 0%, transparent 40%);
+      /* Animación suave y continua */
+      animation: flowMove 20s linear infinite;
+      opacity: 0.8;
+      will-change: transform;
+    }
+
+    .bg-flow-2 {
+      /* Segunda capa con movimiento inverso y distinto tiempo para profundidad */
+      animation: flowMove 30s linear infinite reverse;
+      opacity: 0.5;
+      background: 
+        radial-gradient(circle at 60% 20%, rgba(219, 234, 80, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(201, 227, 58, 0.05) 0%, transparent 45%);
+    }
+
+    @keyframes flowMove {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      100% {
+        transform: translate(-5%, 5%) rotate(360deg);
+      }
+    }
+
+    /* Capa de viñeta oscura para focalizar el centro */
+    .bg-layer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, transparent 0%, var(--bg) 85%);
+      pointer-events: none;
+    }
+
+    /* Main App Container */
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr 300px;
+      gap: 20px;
+      max-width: 1700px;
+      margin: 0 auto;
+      padding: 24px;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+
+      transform: scale(0.98);
+      transform-origin: top center;
+    }
+
+    /* Main Container */
+    .container {
+      background: linear-gradient(180deg, var(--card) 0%, rgba(23, 23, 23, 0.9) 100%);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      width: 100%;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: calc(100vh - 118px);
+      backdrop-filter: blur(20px);
+      box-shadow: 
+        0 8px 40px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      animation: fadeScale 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+      opacity: 0;
+    }
+
+    /* Entrance Animations */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeScale {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, var(--side) 0%, rgba(22, 22, 22, 0.95) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 20px 16px;
+      height: calc(100vh - 48px);
+      position: sticky;
+      top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(20px);
+      box-shadow: 
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    .side-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.1em;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .side-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent1);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .auth-mini {
+      font-size: 0.6em;
+      color: var(--muted);
+      padding: 4px 10px;
+      background: rgba(163, 173, 186, 0.08);
+      border-radius: 999px;
+      transition: all 0.3s ease;
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      min-height: 160px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-track { background: transparent; }
+    .history-list::-webkit-scrollbar-thumb { 
+      background: var(--line); 
+      border-radius: 4px; 
+    }
+
+    .hist-item {
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      margin: 8px 0;
+      background: var(--card);
+      text-align: left;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 0.85em;
+      line-height: 1.4;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hist-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: transparent;
+      transition: all 0.25s ease;
+    }
+
+    .hist-item:hover {
+      background: var(--card-elevated);
+      border-color: var(--line);
+      transform: translateX(4px);
+    }
+
+    .hist-item:hover::before {
+      background: var(--accent1);
+    }
+
+    .hist-item.selected {
+      background: var(--card-elevated);
+      border-color: var(--accent1);
+      box-shadow: 0 0 20px rgba(201, 227, 58, 0.1);
+    }
+
+    .hist-item.selected::before {
+      background: var(--accent1);
+    }
+
+    .auth-box {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .auth-box:focus-within {
+      border-color: rgba(201, 227, 58, 0.3);
+      box-shadow: 0 0 30px rgba(201, 227, 58, 0.05);
+    }
+
+    .auth-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 0.9em;
+      transition: all 0.25s ease;
+    }
+
+    .auth-box input:focus {
+      outline: none;
+      border-color: var(--accent1);
+      box-shadow: 0 0 0 3px rgba(201, 227, 58, 0.1);
+    }
+
+    .auth-box input::placeholder { color: var(--muted); }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.9em;
+      background: var(--bubbleUser);
+      color: #0a0a0a;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201, 227, 58, 0.25);
+    }
+
+    .btn:hover::before { opacity: 1; }
+
+    .btn:active { transform: translateY(0); }
+
+    .btn.secondary {
+      background: var(--card-elevated);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .btn.secondary:hover {
+      background: #252525;
+      border-color: var(--muted);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar > .btn { width: 100%; margin-top: 4px; }
+
+    .brand-header {
+      text-align: center;
+      padding-bottom: 8px;
+    }
+
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.6em;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.85em;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    /* Controls Grid */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 20px;
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-size: 0.75em;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .control-input {
+      padding: 12px 14px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--card);
+      font-family: inherit;
+      font-size: 0.9em;
+      color: var(--ink);
+      transition: all 0.25s ease;
+    }
+
+    .control-input:focus {
+      outline: none;
+      border-color: var(--accent1);
+      box-shadow: 0 0 0 3px rgba(201, 227, 58, 0.1);
+    }
+
+    .control-input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Chat Area */
+    #chat {
+      background: linear-gradient(180deg, #141414 0%, #0f0f0f 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      min-height: 220px;
+      height: 65vh;
+      padding: 24px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.3);
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+
+    #chat::-webkit-scrollbar { width: 6px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { 
+      background: var(--line); 
+      border-radius: 3px; 
+    }
+
+    #emptyState {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 1em;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.15;
+      animation: emptyPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes emptyPulse {
+      0%, 100% { transform: scale(1); opacity: 0.15; }
+      50% { transform: scale(1.05); opacity: 0.2; }
+    }
+
+    /* Chat Bubbles */
+    .bubble {
+      display: inline-block;
+      padding: 14px 20px;
+      border-radius: 20px;
+      max-width: 85%;
+      word-break: break-word;
+      font-size: 0.95em;
+      line-height: 1.5;
+      animation: bubbleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      position: relative;
+    }
+
+    @keyframes bubbleIn {
+      from { 
+        opacity: 0; 
+        transform: translateY(10px) scale(0.95); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+      }
+    }
+
+    .user {
+      align-self: flex-end;
+      background: var(--bubbleUser);
+      color: #0a0a0a;
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 4px 16px rgba(201, 227, 58, 0.2);
+    }
+
+    .ia {
+      align-self: flex-start;
+      background: var(--bubbleAi);
+      color: var(--ink);
+      border-bottom-left-radius: 6px;
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Input Row */
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      padding: 0 20px;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      opacity: 0;
+    }
+
+    #input {
+      font-size: 1em;
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: inherit;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #input:focus {
+      outline: none;
+      border-color: var(--accent1);
+      box-shadow: 0 0 0 4px rgba(201, 227, 58, 0.1);
+      background: #181818;
+    }
+
+    #input::placeholder { color: var(--muted); }
+
+    .send-btn {
+      background: var(--bubbleUser);
+      color: #0a0a0a;
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 0 24px;
+      font-size: 1.3em;
+      font-weight: 700;
+      cursor: pointer;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .send-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 30px rgba(201, 227, 58, 0.3);
+    }
+
+    .send-btn:hover::before { opacity: 1; }
+
+    .send-btn:active { transform: translateY(0) scale(0.98); }
+
+    .send-btn span {
+      transition: transform 0.3s ease;
+    }
+
+    .send-btn:hover span {
+      transform: translateX(3px);
+    }
+
+    /* Right Context Panel */
+    .context-card {
+      background: linear-gradient(180deg, var(--side) 0%, rgba(22, 22, 22, 0.95) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: calc(100vh - 48px);
+      position: sticky;
+      top: 24px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      opacity: 0;
+    }
+
+    .context-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1em;
+      font-weight: 700;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .context-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #contextFileInput {
+      border: 1.5px dashed var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      color: var(--ink);
+      padding: 12px;
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    #contextFileInput:hover {
+      border-color: var(--accent1);
+      background: rgba(201, 227, 58, 0.03);
+    }
+
+    .context-hint {
+      font-size: 0.78em;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    #contextPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .context-item {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.25s ease;
+      animation: fadeScale 0.4s ease forwards;
+    }
+
+    .context-item:hover {
+      border-color: var(--accent1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .context-item-name {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .context-item-meta {
+      font-size: 0.72em;
+      color: var(--muted);
+    }
+
+    .context-item-summary {
+      font-size: 0.8em;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .context-empty {
+      font-size: 0.82em;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px 12px;
+      background: var(--bg);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--line);
+    }
+
+    /* Prompt Card */
+    .prompt-card {
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      animation: slideUp 0.5s ease forwards;
+    }
+
+    .prompt-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .prompt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(201, 227, 58, 0.12) 0%, rgba(219, 234, 80, 0.08) 100%);
+      color: var(--accent1);
+      border: 1px solid rgba(201, 227, 58, 0.25);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.72em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .prompt-section {
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+    }
+
+    .prompt-section-title {
+      font-size: 0.7em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .prompt-section-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.88em;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .prompt-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .small-btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.82em;
+      background: var(--bubbleUser);
+      color: #0a0a0a;
+      transition: all 0.25s ease;
+    }
+
+    .small-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(201, 227, 58, 0.2);
+    }
+
+    .small-btn.secondary {
+      background: var(--card-elevated);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .small-btn.secondary:hover {
+      background: #252525;
+      border-color: var(--muted);
+    }
+
+    /* Toast */
+    .copy-toast {
+      position: fixed;
+      top: 24px;
+      right: -400px;
+      max-width: 360px;
+      z-index: 99999;
+      background: var(--card-elevated);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      padding: 16px 24px;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.95em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .copy-toast.show { right: 24px; }
+
+    .toast-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--bubbleUser);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0a0a0a;
+      font-weight: 700;
+    }
+
+    /* Footer */
+    footer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82em;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    footer a {
+      color: var(--accent1);
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 4px;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover { color: var(--accent2); }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 20px;
+      background: var(--bubbleAi);
+      border-radius: 20px;
+      border-bottom-left-radius: 6px;
+      border: 1px solid var(--line);
+      align-self: flex-start;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: typingBounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* Disabled States */
+    input:disabled, select:disabled, .send-btn:disabled, .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed !important;
+      filter: grayscale(0.3);
+    }
+
+    /* Version Badge */
+    .version-badge {
+      font-size: 0.65em;
+      color: var(--muted);
+      text-align: right;
+      opacity: 0.6;
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .app {
+        grid-template-columns: 260px 1fr;
+      }
+      .context-card { display: none; }
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 16px;
+      }
+      .sidebar {
+        position: relative;
+        height: auto;
+        max-height: 400px;
+      }
+      .container {
+        min-height: auto;
+        padding: 20px;
+      }
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+      #chat {
+        height: 40vh;
+        min-height: 300px;
+      }
+      .input-row {
+        width: 100%;
+        padding: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .brand-header h2 { font-size: 1.3em; }
+      .bubble { max-width: 92%; }
+      .send-btn { padding: 0 18px; }
+    }
+
+    #input {
+      font-size: 1em;
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: inherit;
+      resize: none;
+      height: 54px;
+      overflow-y: hidden;
+    }
+    #input:placeholder-shown + .send-btn {
+      opacity: 0.4;
+      pointer-events: none;
+      filter: grayscale(1);
+    }
+    .meta {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 4px;
+      background: none !important;
+    }
+    .bubble.user + .meta {
+      text-align: right;
+    }
+
+    .bubble.ia + .meta {
+      text-align: left;
+    }
   </style>
 
-  <!-- FIREBASE (v9 compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -83,165 +1010,127 @@
 </head>
 <body>
 
+  <!-- Animated Background -->
+  <div class="bg-layer">
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-noise"></div>
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+  </div>
+
   <div class="app">
-    <!-- ===== Sidebar con Auth + Historial ===== -->
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="side-header">
         <div class="side-title">Historial</div>
-        <div id="authMini" class="auth-mini">No has iniciado sesión</div>
+        <div id="authMini" class="auth-mini">Sin sesión</div>
       </div>
 
-      <!-- Auth -->
       <div id="loggedin" class="auth-box">
-        <input id="email" type="email" placeholder="Correo" autocomplete="email" />
-        <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password" 
-        style="margin-top: 5px;"/>
+        <input id="email" type="email" placeholder="Correo electronico" autocomplete="email" />
+        <input id="password" type="password" placeholder="Contrasena" autocomplete="current-password" />
         <div class="auth-actions">
-          <button class="btn" onclick="login()" style="margin-top: 10px;">Entrar</button>
+          <button class="btn" onclick="login()">Iniciar Sesion</button>
         </div>
-        <div class="auth-mini" style="margin-top: 5px;">* Debes iniciar sesión para usar la app.</div>
       </div>
-        <div style="font-size: x-small; margin-top: -7px; text-align: right;">v 1.18</div>
-          <button class="btn secondary" onclick="logout()" id="loggedout">Salir</button>
 
-      <button class="btn" onclick="nuevoChat()">+ Nuevo chat</button>
-      <button class="btn secondary" onclick="openStyleGuideEditor()">✏️ Guía de estilo</button>
-      <div class="history-list" id="historialPanel"></div>
-      <!-- <button class="btn secondary" onclick="listarSesiones()">Actualizar historial</button> -->
+      <div class="version-badge">v 2.0.0</div>
+      <button class="btn secondary" onclick="logout()" id="loggedout">Cerrar Sesion</button>
+      <button class="btn" onclick="nuevoChat()">Nuevo Chat</button>
 
-      <!-- <div class="history-list" id="historialPanel">
-        <div class="auth-mini">Inicia sesión para ver tu historial.</div>
-      </div> -->
-      <!-- <button class="btn secondary" onclick="listarSesiones()">Actualizar historial</button> -->
+      <div class="history-list" id="historialPanel">
+        <div class="context-empty">No hay conversaciones previas</div>
+      </div>
     </aside>
 
-    <!-- ===== Main ===== -->
+    <!-- Main Chat Container -->
     <main class="container">
-    <!-- <img class="logo" src="https://iaffm.com/wp-content/uploads/2023/11/PARTNER-iKartoons.png"><br> -->
-      <!-- <h2> Song2Clips by Ikartoons</h2> -->
-    <div id="allControls" style="display:grid;grid-template-columns:minmax(220px, 2fr) minmax(220px, 2fr) minmax(220px, 2fr)minmax(90px, 0.6fr) minmax(90px, 0.6fr);gap:12px;margin:0 0 12px 0;width:100%;align-items:center;">
 
-      <!-- 1) Nombre del chat -->
-      <div style="display:flex;flex-direction:column;">
-        <label for="tituloChat" style="font-size:0.9em;margin-bottom:4px;">Nombre del chat:</label>
-        <input id="tituloChat" type="text" placeholder="Nombre del chat"
-              style="padding:8px;border:1.5px solid #cfd8ea;border-radius:6px;background:#f8fbff;font-family:inherit;"
-              disabled />
-      </div>
-
-      <!-- 2) Modelo -->
-      <div style="display:flex;flex-direction:column;">
-        <label for="clienteSelector" style="font-size:0.9em;margin-bottom:4px;">Modelo:</label>
-        <select id="clienteSelector" title="Selecciona el modelo (contexto)" disabled
-                style="padding:6px 8px;border:1.5px solid #cfd8ea;border-radius:6px;background:#f8fbff;font-family:inherit;"></select>
-      </div>
-
-      <!-- 3) Estilo de animación -->
-      <div style="display:flex;flex-direction:column;">
-        <label for="animStyle" style="font-size:0.9em;margin-bottom:4px;">Estilo de animación</label>
-        <select id="animStyle" title="Animation style"
-                style="padding:6px 8px;border:1.5px solid #cfd8ea;border-radius:6px;background:#f8fbff;font-family:inherit;">
-          <option>2D Cartoon</option>
-          <option>3D Cartoon</option>
-          <option>Anime</option>
-          <option>Ghibli</option>
-          <option>Stop-motion</option>
-          <option>Claymation</option>
-          <option>Cut-out animation</option>
-          <option>Interlocking plastic bricks</option>
-          <option>Papercraft animation</option>
-          <option>Whiteboard animation</option>
-          <option>Line-art animation</option>
-          <option>Flat 2D</option>
-          <option>Vector animation</option>
-          <option>Cel-shaded</option>
-          <option>Toon shader</option>
-          <option>Hand-drawn</option>
-          <option>Watercolor animation</option>
-          <option>Ink-wash animation</option>
-          <option>Pencil-sketch animation</option>
-          <option>Chalkboard animation</option>
-          <option>Marker-style animation</option>
-          <option>Crayon animation</option>
-          <option>Oil-paint animation</option>
-          <option>Gouache animation</option>
-          <option>Pastel animation</option>
-          <option>Collage animation</option>
-          <option>Pixel art</option>
-          <option>8-bit</option>
-          <option>16-bit</option>
-          <option>Low-poly animation</option>
-          <option>Isometric animation</option>
-          <option>2.5D parallax</option>
-          <option>Rubber-hose</option>
-          <option>Limited animation</option>
-          <option>Rotoscope</option>
-          <option>Motion graphics</option>
-          <option>Kinetic typography</option>
-          <option>Motion comic</option>
-        </select>
-      </div>
-
-      <!-- 4) Relación de video -->
-      <div style="display:flex;flex-direction:column;">
-        <label for="videoRatio" style="font-size:0.9em;margin-bottom:4px;">Relación</label>
-        <select id="videoRatio" title="Video ratio"
-                style="padding:6px 8px;border:1.5px solid #cfd8ea;border-radius:6px;background:#f8fbff;font-family:inherit;">
-          <option value="16:9">16:9</option>
-          <option value="9:16" selected>9:16</option>
-          <option value="1:1">1:1</option>
-          <option value="4:3">4:3</option>
-          <option value="21:9">21:9</option>
-        </select>
-      </div>
-
-      <!-- 5) Duración -->
-      <div style="display:flex;flex-direction:column;">
-        <label for="videoDuration" style="font-size:0.9em;margin-bottom:4px;">Duración (s)</label>
-        <select id="videoDuration" title="Duration (seconds)"
-                style="padding:6px 8px;border:1.5px solid #cfd8ea;border-radius:6px;background:#f8fbff;font-family:inherit;">
-          <option>5</option><option>6</option><option>7</option>
-          <option selected>8</option><option>9</option><option>10</option>
-        </select>
-      </div>
-    </div>
-
-    <div id="chat" style="height:75vh; min-height:450px; max-height:600px;
-              overflow-y:auto; display:flex; flex-direction:column; justify-content:flex-start;"></div>
-        <div class="input-row"
-            style="width:85%; margin:0 auto; text-align:center; align-items:center;">
-          <input type="text" id="input"
-                placeholder="Escribe una pregunta o requerimiento aquí..."
-                autocomplete="off" onkeydown="if(event.key==='Enter')send();" disabled
-                style="vertical-align:middle;" />
-          <button class="send-btn" onclick="send()" title="Enviar" disabled
-                  style="margin-left:8px; vertical-align:middle;"><span>➤</span></button>
-          <button class="send-btn" id="regenBtn" onclick="regen()" title="Re-generar" disabled
-                  style="margin-left:8px; vertical-align:middle;">⟳</button>
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="tituloChat">Nombre del Chat</label>
+          <input id="tituloChat" type="text" placeholder="Sin titulo" class="control-input" disabled />
         </div>
-
-        <div class="files-row blocked" id="filesWrapper"
-            style="width:80%; margin:0 auto; text-align:center; align-items:center;">
-          <input id="fileInput" type="file" accept="audio/*,.txt" disabled />
-          <div id="dropZone">Arrastra aquí audio (.mp3/.wav/.m4a) o un .txt con la letra</div>
+        <div class="control-group">
+          <label for="clienteSelector">Modelo</label>
+          <select id="clienteSelector" title="Selecciona el modelo" class="control-input" disabled>
+            <option>GPT-4 Turbo</option>
+          </select>
         </div>
-    </div>
-  </main>
-  <footer style="display: flex; justify-content: center; align-items: center; text-align: center; margin-top: -30px; padding-bottom: 0;font-size: small;">
-    Desarrollado por 
-    <a href="https://www.ikartoons.com/" target="_blank" style="color: #DBEA50;">
+        <div class="control-group">
+          <label for="generatorSelector">Generador</label>
+          <select id="generatorSelector" class="control-input" disabled>
+            <option>Prompt Builder</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="chat">
+        <div id="emptyState">
+          <div class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <span>Inicia sesion para comenzar</span>
+        </div>
+      </div>
+
+      <div class="input-row" id="inputRow" style="display:none;">
+        <textarea
+          id="input"
+          placeholder="Escribe una instruccion, pide un prompt o conversa..."
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();send();}"
+          disabled
+        /></textarea>
+        <button class="send-btn" id="sendBtn" onclick="send()" title="Enviar">
+          <span>➤</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- Context Panel -->
+    <aside class="context-card" id="rightContext" style="display:none;">
+      <div class="context-title">Contexto del Chat</div>
+      <div class="context-toolbar">
+        <input id="contextFileInput" type="file" multiple disabled />
+        <button class="btn secondary" id="refreshContextBtn" onclick="loadContextFiles()" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px;">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          </svg>
+          Sync
+        </button>
+      </div>
+      <div class="context-hint">
+        Adjunta imagenes, documentos PDF, archivos de texto u otros recursos para enriquecer el contexto de tu conversacion.
+      </div>
+      <div id="contextPanel">
+        <div class="context-empty">Arrastra archivos aqui o usa el boton superior</div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex; justify-content:center; align-items:center; text-align:center; margin-top:-50px; padding-bottom:0; font-size:small;">
+    Desarrollado por
+    <a href="https://www.ikartoons.com/" target="_blank" style="color:#DBEA50;">
       <strong>iKartoons</strong>
-    </a>. 
-    Todos los derechos reservados © 2025
-  </footer>
+    </a>.
+    Todos los derechos reservados © 2026
+  </footer> 
+
+  <!-- Toast -->
+  <div class="copy-toast" id="toast">
+    <div class="toast-icon">✓</div>
+    <span id="toastMessage">Copiado al portapapeles</span>
+  </div>
 
   <script>
-    // Router al backend: en localhost usa 3001; en producción, same-origin
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     const API = isLocal ? 'http://localhost:3001' : '';
     const api = (p) => (API ? `${API}${p}` : p);
 
-    // ======= FIREBASE INIT =======
     const firebaseConfig = {
       apiKey: "AIzaSyALiQJZTNI2-8SGWgLbp-ohNBQ6xDZw5Pg",
       authDomain: "ikartoons-chatbot-7b2b6.firebaseapp.com",
@@ -251,86 +1140,231 @@
       appId: "1:631388378951:web:a92ef6ce62f28495331e62",
       measurementId: "G-BNHHSH0J2T"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+    const storage = firebase.storage();
 
-    // ======= ESTADO =======
-    let CONTEXTO = "";
-    let PROMPT_CHUNKS = "";
-    let PROMPT_SMALLANSWER = "";
-    let clienteActual = null;
-    const selector = document.getElementById("clienteSelector");
-    let chatHistory = [];
-    let lastLyrics = "";
-    let lastChunks = [];
-    let currentSessionId = null;
     let currentUser = null;
-    let sessionState = {}; // { [sid]: { lastLyrics, lastChunks } }
+    let currentSessionId = null;
+    let clienteActual = null;
+    let chatHistory = [];
+    let currentSessionData = null;
 
-    // ======= BLOQUEO/DEBLOQUEO DE UI =======
-    function setUIEnabled(enabled){
-      document.getElementById("input").disabled = !enabled;
-      document.querySelector(".send-btn").disabled = !enabled;
-      document.getElementById("fileInput").disabled = !enabled;
+    const selector = document.getElementById("clienteSelector");
+    const generatorSelector = document.getElementById("generatorSelector");
+    let generatorActual = null;
+    generatorSelector.addEventListener("change", async (e) => {
+      generatorActual = e.target.value;
+
+      if (currentSessionId) {
+        await db.collection("sesiones").doc(currentSessionId).set({
+          selectedGeneratorId: generatorActual,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+    });
+    const tituloInput = document.getElementById("tituloChat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const contextFileInput = document.getElementById("contextFileInput");
+    const refreshContextBtn = document.getElementById("refreshContextBtn");
+
+    function setUIEnabled(enabled) {
+      generatorSelector.disabled = !enabled;
+      inputEl.disabled = !enabled;
+      sendBtn.disabled = !enabled;
       selector.disabled = !enabled;
-      (document.getElementById("videoRatio")||{}).disabled = !enabled;
-      (document.getElementById("videoDuration")||{}).disabled = !enabled;
-      (document.getElementById("animStyle")||{}).disabled = !enabled;
-
-      const filesWrap = document.getElementById("filesWrapper");
-      if(enabled){ filesWrap.classList.remove("blocked"); }
-      else{ filesWrap.classList.add("blocked"); }
+      contextFileInput.disabled = !enabled;
+      refreshContextBtn.disabled = !enabled;
     }
 
-    // Estado inicial: bloqueado hasta login
-    setUIEnabled(false);
+    function updateInputVisibility() {
+      const row = document.getElementById("inputRow");
+      if (!row) return;
 
-    // ======= AUTH (solo login/logout) =======
-    async function login(){
-      const e = document.getElementById("email").value.trim();
-      const p = document.getElementById("password").value;
-      try{
-        await auth.signInWithEmailAndPassword(e,p);
-      }catch(err){
-        alert("Login: " + (err.message||err));
+      if (currentUser && currentSessionId) {
+        row.style.display = "grid";
+      } else {
+        row.style.display = "none";
+      }
+      const ctx = document.getElementById("rightContext");
+      if (ctx) ctx.style.display = (currentSessionId ? "flex" : "none");
+    }
+
+    function setTitleEnabled(enabled) {
+      tituloInput.disabled = !enabled;
+      if (!enabled) tituloInput.value = "";
+    }
+
+    
+    function append(msg, from, timestamp) {
+      const empty = document.getElementById("emptyState");
+      if (empty) empty.style.display = "none";
+
+      const chat = document.getElementById("chat");
+
+      const wrapper = document.createElement("div");
+      wrapper.style.display = "flex";
+      wrapper.style.flexDirection = "column";
+      wrapper.style.alignItems = (from === "Usuario") ? "flex-end" : "flex-start";
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (from === "Usuario" ? "user" : "ia");
+      bubble.innerHTML = msg;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const date = new Date(timestamp || Date.now());
+      const isToday = date.toDateString() === new Date().toDateString();
+
+      meta.textContent = isToday
+        ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      meta.style.textAlign = (from === "Usuario") ? "right" : "left";
+
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(meta);
+
+      chat.appendChild(wrapper);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setEmptyState(text) {
+      const el = document.getElementById("emptyState");
+      if (!el) return;
+      el.textContent = text;
+      el.style.display = "flex";
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;");
+    }
+
+    function showToast(text = "Copiado en portapapeles", type = "ok") {
+      let el = document.getElementById("copyToast");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "copyToast";
+        el.className = "copy-toast";
+        document.body.appendChild(el);
+      }
+
+      el.innerHTML = `
+        <span style="
+          flex:0 0 auto; width:10px; height:100%;
+          border-radius:999px 0 0 999px;
+          background:${type === "ok" ? "#DBEA50" : "#ef4444"};
+          box-shadow:0 0 0 3px rgba(0,0,0,.12) inset;
+          align-self:stretch; margin:-18px 2px -18px -24px;
+        "></span>
+        <span style="
+          flex:0 0 auto; width:16px; height:16px; border-radius:999px;
+          background:${type === "ok" ? "#C9E33A" : "#ef4444"};
+          box-shadow:0 0 0 3px rgba(0,0,0,.18);
+        "></span>
+        <span>${escapeHtml(text)}</span>
+      `;
+      requestAnimationFrame(() => { el.style.right = "24px"; });
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { el.style.right = "-620px"; }, 2400);
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(String(text || ""));
+        showToast("Copiado en portapapeles.");
+      } catch {
+        showToast("No se pudo copiar.", "error");
       }
     }
-    async function logout(){
-      try{ await auth.signOut(); }catch(e){}
+
+    function renderPromptCard(data) {
+      const modelName = escapeHtml(data?.model?.name || data?.model?.id || "Modelo");
+      const modelMode = escapeHtml(data?.model?.mode || "");
+      const prompt = String(data?.prompt_package?.prompt || "");
+      const negative = String(data?.prompt_package?.negative || "");
+
+      const wrap = document.createElement("div");
+      wrap.className = "bubble ia";
+      wrap.style.maxWidth = "96%";
+      wrap.innerHTML = `
+        <div class="prompt-card">
+          <div class="prompt-card-head">
+            <div class="prompt-badge">${modelName}${modelMode ? ` · ${modelMode}` : ""}</div>
+          </div>
+
+          <div class="prompt-section">
+            <div class="prompt-section-title">Prompt</div>
+            <div class="prompt-section-body">${escapeHtml(prompt)}</div>
+            <div class="prompt-actions">
+              <button class="small-btn" data-copy="prompt">Copiar prompt</button>
+            </div>
+          </div>
+
+          <div class="prompt-section">
+            <div class="prompt-section-title">Negative</div>
+            <div class="prompt-section-body">${escapeHtml(negative)}</div>
+            <div class="prompt-actions">
+              <button class="small-btn secondary" data-copy="negative">Copiar negative</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      wrap.querySelector('[data-copy="prompt"]').onclick = () => copyToClipboard(prompt);
+      wrap.querySelector('[data-copy="negative"]').onclick = () => copyToClipboard(negative);
+
+      const chat = document.getElementById("chat");
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    const tituloInput = document.getElementById("tituloChat");
-
-    function setTitleEnabled(enabled){
-      tituloInput.disabled = !enabled;
-      if(!enabled) tituloInput.value = "";
+    async function login() {
+      const e = document.getElementById("email").value.trim();
+      const p = document.getElementById("password").value;
+      try {
+        await auth.signInWithEmailAndPassword(e, p);
+      } catch (err) {
+        alert("Login: " + (err.message || err));
+      }
     }
 
-    async function saveTitulo(){
-      if(!currentUser || !currentSessionId) return;
-      const titulo = (tituloInput.value || "").trim();
-      try{
-        await db.collection("sesiones").doc(currentSessionId).update({
-          titulo,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }catch(e){ console.warn("No pude guardar titulo:", e); }
+    async function logout() {
+      try { await auth.signOut(); } catch {}
     }
 
-    // listeners
-    tituloInput.addEventListener("keydown", (e)=>{
-      if(e.key === "Enter"){
+    tituloInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
         e.preventDefault();
         saveTitulo();
         tituloInput.blur();
       }
     });
+
     tituloInput.addEventListener("blur", saveTitulo);
 
-    // NADA de anónimo aquí.
-    auth.onAuthStateChanged(async (user)=>{
+    async function saveTitulo() {
+      if (!currentUser || !currentSessionId) return;
+      const titulo = (tituloInput.value || "").trim();
+      try {
+        await db.collection("sesiones").doc(currentSessionId).set({
+          titulo,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch {}
+    }
+
+    auth.onAuthStateChanged(async (user) => {
       currentUser = user || null;
+
       if (currentUser) {
         document.getElementById("loggedin").style.display = "none";
         document.getElementById("loggedout").style.display = "block";
@@ -338,1445 +1372,524 @@
         document.getElementById("loggedin").style.display = "block";
         document.getElementById("loggedout").style.display = "none";
       }
+
       const authMini = document.getElementById("authMini");
-      if(user){
+
+      if (user) {
         authMini.textContent = user.email || "(sin correo)";
         setUIEnabled(true);
-        // Aplicar prefs predeterminadas si existen (antes de abrir una sesión)
-        try { const defVP = getDefaultVideoPrefs(); if (defVP) applyVideoPrefs(defVP); } catch {}
-        // Activar listeners para guardar automáticamente al cambiar los selects
-        wireVideoPrefsListeners();
-        await cargarClientes();
+        await cargarModelos();
         await listarSesiones();
-        append(`<span class="meta">Sesión iniciada: ${escapeHtml(user.email||user.uid)}</span>`, "IA");
-        setTitleEnabled(!!currentSessionId);
-      }else{
+        setEmptyState("Crea un nuevo chat para comenzar");
+        updateInputVisibility();
+      } else {
         authMini.textContent = "No has iniciado sesión";
         setUIEnabled(false);
-        document.getElementById("historialPanel").innerHTML = "<div class='auth-mini'>Inicia sesión para ver tu historial.</div>";
-        append(`<span class="meta">Inicia sesión para usar la app.</span>`, "IA");
         setTitleEnabled(false);
+        currentSessionId = null;
+        clienteActual = null;
+        currentSessionData = null;
+        chatHistory = [];
+        document.getElementById("contextPanel").innerHTML = "<div class='context-empty'>No hay archivos de contexto.</div>";
+        document.getElementById("chat").innerHTML = `
+          <div id="emptyState" style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            height:100%;
+            color:#777;
+            font-size:1em;
+            text-align:center;
+          ">
+          </div>
+        `;
+        setEmptyState("Inicia sesión para usar la app");
+        updateInputVisibility();
       }
     });
 
-    // ======= MODELOS (colección 'clientes') =======
-    async function cargarClientes() {
-      if(!currentUser) return;
-      try {
-        const snapshot = await db.collection("clientes").get();
-        selector.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const opt = document.createElement("option");
-          opt.value = doc.id;
-          opt.textContent = data.nombre || doc.id;
-          selector.appendChild(opt);
-        });
-        if (selector.options.length) {
-          selector.selectedIndex = 0;
-          await cambiarCliente(selector.value);
+    async function cargarModelos() {
+      const snap = await db.collection("clientes").get();
+
+      selector.innerHTML = "";
+
+      snap.forEach(doc => {
+        const data = doc.data();
+        const opt = document.createElement("option");
+        opt.value = doc.id;
+        opt.textContent = data.nombre || doc.id;
+        selector.appendChild(opt);
+      });
+
+      if (selector.options.length) {
+        selector.selectedIndex = 0;
+        clienteActual = selector.value;
+        await cargarGeneradoresDesdeCliente(clienteActual);
+      }
+    }
+
+    async function cargarGeneradoresDesdeCliente(clientId){
+      const doc = await db.collection("clientes").doc(clientId).get();
+      const data = doc.data();
+
+      generatorSelector.innerHTML = "";
+
+      (data.generators || []).forEach(g=>{
+        const opt = document.createElement("option");
+        opt.value = g.id;
+        opt.textContent = g.name;
+        generatorSelector.appendChild(opt);
+      });
+
+      generatorActual = generatorSelector.value || null;
+    }
+
+    selector.addEventListener("change", async (e) => {
+      clienteActual = e.target.value;
+
+      const prev = generatorActual;
+
+      await cargarGeneradoresDesdeCliente(clienteActual);
+
+      if (prev) {
+        const exists = [...generatorSelector.options].some(o => o.value === prev);
+        if (exists) {
+          generatorSelector.value = prev;
+          generatorActual = prev;
         }
-      } catch (e) {
-        console.error("Error cargando modelos:", e);
-        append("No pude cargar la lista de modelos desde Firestore.", "IA");
       }
-    }
 
-    async function cambiarCliente(clienteId) {
-      if(!currentUser) return;
-      try {
-        const doc = await db.collection("clientes").doc(clienteId).get();
-        if (doc.exists) {
-          const data = doc.data();
-          CONTEXTO = data.contexto || "";
-          PROMPT_CHUNKS = data.prompt_chunks || "";
-          PROMPT_SMALLANSWER = data.prompt_smallanswer || "";
-          clienteActual = clienteId;
-          append(`<span class="meta">Modelo activo: <b>${escapeHtml(data.nombre || clienteId)}</b></span>`, "IA");
-          chatHistory.push({ role: "system", content: `Contexto del modelo:\n${CONTEXTO || "(sin contexto)"}` });
-        }
-      } catch (e) {
-        console.error("Error cambiando de modelo:", e);
+      if (currentSessionId) {
+        await db.collection("sesiones").doc(currentSessionId).set({
+          selectedModelId: clienteActual,
+          selectedGeneratorId: generatorActual || null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
       }
-    }
-    selector.addEventListener("change", (e) => cambiarCliente(e.target.value));
+    });
 
-    // ======= CHAT UI =======
-    function append(msg, from) {
-      const chat = document.getElementById("chat");
-      const el = document.createElement("div");
-      el.className = "bubble " + (from === "Usuario" ? "user" : "ia");
-      el.innerHTML = msg;
-      chat.appendChild(el);
-      chat.scrollTop = chat.scrollHeight;
-    }
-    append(`<span class="meta">Inicia sesión para habilitar el envío de mensajes, subir archivos y ver tu historial.</span>`, "IA");
-
-    // ======= FILES =======
-    const fileInput = document.getElementById("fileInput");
-    const dropZone  = document.getElementById("dropZone");
-    fileInput.addEventListener("change", (e) => { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); });
-    ["dragenter","dragover"].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); if(currentUser) dropZone.classList.add("dragover"); }));
-    ["dragleave","drop"].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove("dragover"); }));
-    dropZone.addEventListener("drop", (e) => { if(!currentUser) { append("Debes iniciar sesión para subir archivos.", "IA"); return; } const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); });
-
-    // ======= HISTORIAL (por usuario) =======
-    async function ensureSessionDoc(){
-      if(!currentUser) return null;
-      if(!currentSessionId){
-        // currentSessionId = "sess_" + Math.random().toString(36).slice(2) + Date.now();
-        // await db.collection("sesiones").doc(currentSessionId).set({
-        //   createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //   updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //   modeloId: clienteActual || "modelo_1_0",
-        //   contexto: CONTEXTO || "",
-        //   ownerUid: currentUser.uid,
-        //   ownerEmail: currentUser.email || null,
-        //   status: "activa"
-        // });
-        return null;
-      }
+    async function ensureSessionDoc() {
+      if (!currentUser || !currentSessionId) return null;
       return db.collection("sesiones").doc(currentSessionId);
     }
 
-    async function saveMessage(role, content){
+    async function saveMessage(role, content, type = "conversation") {
       const ref = await ensureSessionDoc();
-      if(!ref) return;
+      if (!ref) return;
+
       await ref.collection("mensajes").add({
-        role, content,
+        role,
+        content,
+        type,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+
       const updateData = {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
+
       if (role !== "system") {
         const author = role === "user" ? "tu" : (role === "assistant" ? "chatBot" : role);
         updateData.lastMessage = content;
-        updateData.lastAuthor  = author;
+        updateData.lastAuthor = author;
       }
-      await ref.update(updateData);
+
+      await ref.set(updateData, { merge: true });
     }
 
-    async function saveClipsToHistory({modeloId, lyrics, clips}){
-      const ref = await ensureSessionDoc();
-      if(!ref) return;
-      await ref.collection("eventos").add({
-        type: "clips_generated",
-        modeloId, lyrics, clips,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      await ref.update({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    }
-
-    async function listarSesiones(){
+    async function listarSesiones() {
       const panel = document.getElementById("historialPanel");
       panel.innerHTML = "";
 
-      if(!currentUser){
-        panel.innerHTML = "<div class='auth-mini'>Inicia sesión para ver tu historial.</div>";
-        return;
-      }
-
       let snaps;
-      try{
+      try {
         snaps = await db.collection("sesiones")
-          .where("ownerUid","==",currentUser.uid)
-          .orderBy("updatedAt","desc")
-          .limit(20).get();
-      }catch(e){
-        // Fallback si falta índice
+          .where("ownerUid", "==", currentUser.uid)
+          .orderBy("updatedAt", "desc")
+          .limit(20)
+          .get();
+      } catch {
         snaps = await db.collection("sesiones")
-          .where("ownerUid","==",currentUser.uid)
-          .limit(20).get();
+          .where("ownerUid", "==", currentUser.uid)
+          .limit(20)
+          .get();
       }
 
-      // trabajamos con el array de docs para poder ordenar siempre
-      const docs = snaps.docs ? snaps.docs.slice() : [];
+      const docs = snaps.docs ? snaps.docs.slice() : [];      
+      docs.sort((a, b) => {
+        const da = a.data().updatedAt?.toMillis?.() || 0;
+        const dbb = b.data().updatedAt?.toMillis?.() || 0;
+        return dbb - da;
+      });
 
-      if(docs.length === 0){
+      if (!docs.length) {
         panel.innerHTML = "<div class='auth-mini'>No hay historiales aún.</div>";
         return;
       }
 
-      // asegura orden por updatedAt DESC incluso en el fallback sin orderBy
-      docs.sort((a,b)=>{
-        const da = a.data().updatedAt?.toMillis?.() || 0;
-        const db = b.data().updatedAt?.toMillis?.() || 0;
-        return db - da;
-      });
+      docs.forEach(doc => {
+        const d = doc.data() || {};
 
-      docs.forEach(doc=>{
-        const d = doc.data();
+        if (!String(d.titulo || "").trim() && !String(d.lastMessage || "").trim()) {
+          // mostrar igual como vacío
+        }
         const div = document.createElement("div");
         div.className = "hist-item";
         div.dataset.sid = doc.id;
 
         if (doc.id === currentSessionId) div.classList.add("selected");
 
-        // Convierte el timestamp de Firestore a Date nativo
-        const date = d.createdAt && d.createdAt.seconds 
-  ? new Date(d.createdAt.seconds * 1000) 
-  : new Date();
+        const date = d.createdAt && d.createdAt.seconds
+          ? new Date(d.createdAt.seconds * 1000)
+          : new Date();
 
-const formattedDate = date.toLocaleDateString("es-ES", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "2-digit"
-}) + " " + date.toLocaleTimeString("es-ES", {
-  hour: "2-digit",
-  minute: "2-digit"
-});
+        const formattedDate = date.toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit"
+        }) + " " + date.toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
 
-const label = d.titulo && d.titulo.trim() !== ""
-  ? (`<div style="margin-bottom:4px;"><b>${d.titulo || ""}</b></div>`  +
-      `<b>${d.lastAuthor || ""}:</b> ` +
-      (d.lastMessage.length > 70 
-        ? d.lastMessage.slice(0, 70) + "…" 
-        : d.lastMessage) +
-      `<div style="font-size:smaller; text-align:right; color:#666; margin-top:8px;">${formattedDate}</div>`)
-  : (d.lastMessage && d.lastMessage.trim() !== ""
-      ? (`<b>${"-"}</b><br>`  +
-          `<b>${d.lastAuthor || ""}:</b> ` +
-          (d.lastMessage.length > 70 
-            ? d.lastMessage.slice(0, 70) + "…" 
-            : d.lastMessage) +
-          `<div style="font-size:smaller; text-align:right; color:#666; margin-top:8px;">${formattedDate}</div>`)
-      : (`Chat vacío <div style="font-size:smaller; text-align:right; color:#666; margin-top:8px;">${formattedDate}</div>`));
-        div.innerHTML = label;
-        div.onclick = ()=> { cargarSesion(doc.id); selectHistItem(doc.id); };
+        const lastMsg = String(d.lastMessage || "").trim() || "-";
+        const title = String(d.titulo || "").trim();
+        const displayTitle = title || "Chat sin titulo";
+        const author = String(d.lastAuthor || "-");
+
+        div.innerHTML = `<div style="margin-bottom:4px;"><b>${escapeHtml(displayTitle)}</b></div>
+          ${author && author !== "-" ? `<b>${escapeHtml(author)}:</b> ` : ""}${escapeHtml(lastMsg.length > 70 ? lastMsg.slice(0, 70) + "…" : lastMsg)}
+          <div style="font-size:smaller; text-align:right; color:#666; margin-top:8px;">${formattedDate}</div>`;
+
+        div.onclick = () => { cargarSesion(doc.id); selectHistItem(doc.id); };
         panel.appendChild(div);
       });
     }
 
-    async function cargarSesion(sid){
-      if(!currentUser) return;
+    function selectHistItem(sid) {
+      const panel = document.getElementById("historialPanel");
+      [...panel.querySelectorAll(".hist-item")].forEach(el => {
+        el.classList.toggle("selected", el.dataset.sid === sid);
+      });
+    }
+
+    async function nuevoChat(renderNotice = true) {
+      if (!currentUser) {
+        alert("Debes iniciar sesión para crear un chat.");
+        return;
+      }
+
+      const sid = "sess_" + Math.random().toString(36).slice(2) + Date.now();
       currentSessionId = sid;
-      lastLyrics = ""; lastChunks = [];
-      sessionState[sid] = sessionState[sid] || { lastLyrics:"", lastChunks: [] };
-      selectHistItem(sid);
+      currentSessionData = null;
+      chatHistory = [];
+
+      await db.collection("sesiones").doc(sid).set({
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        ownerUid: currentUser.uid,
+        ownerEmail: currentUser.email || null,
+        status: "activa",
+        selectedModelId: clienteActual || null,
+        titulo: "",
+        selectedGeneratorId: generatorActual || null,
+        lastMessage: ""
+      });
+
+      setTitleEnabled(true);
+      tituloInput.value = "";
       document.getElementById("chat").innerHTML = "";
-      // append(`<span class="meta">Cargando historial: ${sid}</span>`, "IA");
+      document.getElementById("contextPanel").innerHTML = "<div class='context-empty'>No hay archivos de contexto.</div>";
+
+      if (renderNotice) {
+        append(`<span class="meta">Nuevo chat creado.</span>`, "IA");
+      }
+
+      await listarSesiones();
+      selectHistItem(sid);
+      updateInputVisibility();
+
+      setTimeout(() => {
+        listarSesiones();
+      }, 200);
+    }
+
+    async function cargarSesion(sid) {
+      if (!currentUser) return;
+      currentSessionId = sid;
+      document.getElementById("chat").innerHTML = "";
+      chatHistory = [];
 
       const ref = db.collection("sesiones").doc(sid);
       const docSnap = await ref.get();
-      const data = docSnap.data();
-      // Preferencias de video por sesión (Firestore) con fallback a localStorage
-      sessionState[sid] = sessionState[sid] || {};
-      if (data?.videoPrefs) {
-        sessionState[sid].videoPrefs = data.videoPrefs;
-        applyVideoPrefs(data.videoPrefs);
-      } else {
-        const defVP = getDefaultVideoPrefs();
-        if (defVP) {
-          sessionState[sid].videoPrefs = defVP;
-          applyVideoPrefs(defVP);
-        } else {
-          // Siempre garantizar que haya algo en memoria
-          sessionState[sid].videoPrefs = currentVideoPrefsFromUI();
-        }
-      }
-      if (!sessionState[sid].styleGuide) {
-        const def = (() => { try { return JSON.parse(localStorage.getItem("defaultStyleGuide") || "null"); } catch { return null; } })();
-        if (def?.guide) {
-          sessionState[sid].styleGuide = def.guide;
-          sessionState[sid].styleLocked = !!def.locked;
-        }
-      }
-      tituloInput.value = (data?.titulo || "");
+      const data = docSnap.data() || {};
+      currentSessionData = data;
+
+      tituloInput.value = data.titulo || "";
       setTitleEnabled(true);
-      sessionState[sid] = sessionState[sid] || {};
-      if (data?.styleGuide)  sessionState[sid].styleGuide  = data.styleGuide;
-      if (typeof data?.styleLocked === "boolean") sessionState[sid].styleLocked = data.styleLocked;
+
+      if (data.selectedModelId) {
+        clienteActual = data.selectedModelId;
+        selector.value = data.selectedModelId;
+      } else if (selector.options.length && !selector.value) {
+        selector.selectedIndex = 0;
+        clienteActual = selector.value;
+      }
+
+      await cargarGeneradoresDesdeCliente(clienteActual);
+
+      if (data.selectedGeneratorId) {
+        const exists = [...generatorSelector.options].some(o => o.value === data.selectedGeneratorId);
+        if (exists) {
+          generatorSelector.value = data.selectedGeneratorId;
+          generatorActual = data.selectedGeneratorId;
+          generatorSelector.dispatchEvent(new Event("change"));
+        }
+      }
+
       const createdAt = data?.createdAt?.toDate ? data.createdAt.toDate() : null;
       const updatedAt = data?.updatedAt?.toDate ? data.updatedAt.toDate() : null;
-      const fechaStr = createdAt 
-        ? createdAt.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" }) 
+      const fechaStr = createdAt
+        ? createdAt.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" })
         : "";
-      const fechaStr2 = updatedAt 
-        ? updatedAt.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" }) 
+      const fechaStr2 = updatedAt
+        ? updatedAt.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" })
         : "";
 
-      // Mostrar título con fecha en lugar de "Cargando historial"
       append(`
         <div class="meta">
-          <b>Chat creado: ${fechaStr}<br>
-          <span style="font-size:0.85em; color:#555;">
-            Última actualización: ${fechaStr2}
-          </span></b>
+          <b>Chat creado: ${escapeHtml(fechaStr)}<br>
+          <span style="font-size:0.85em; color:#555;">Última actualización: ${escapeHtml(fechaStr2)}</span></b>
         </div>
       `, "IA");
 
-      // Mensajes
-      // === Unificar mensajes + eventos en una sola línea de tiempo ===
-      const msgsSnap = await ref.collection("mensajes").orderBy("createdAt","asc").get();
-      const evSnap   = await ref.collection("eventos").orderBy("createdAt","asc").get();
+      const msgsSnap = await ref.collection("mensajes").orderBy("createdAt", "asc").get().catch(async () => {
+        return await ref.collection("mensajes").orderBy("createdAt", "asc").get();
+      });
 
-      chatHistory = [];
+      let promptSnap;
+      try {
+        promptSnap = await ref.collection("prompt_generations").get();
+      } catch (e) {
+        console.error("PROMPT LOAD ERROR", e);
+        promptSnap = { forEach: () => {} };
+      }
+
       const timeline = [];
 
-      // Empaquetar mensajes
       msgsSnap.forEach(m => {
-        const d = m.data();
+        const d = m.data() || {};
         timeline.push({
-          t: d.createdAt?.toMillis?.() || (d.createdAt?.seconds ? d.createdAt.seconds * 1000 : 0),
+          t: d.createdAt?.toMillis?.() || (d.createdAt?.seconds ? d.createdAt.seconds * 1000 : Date.now()),
           kind: "msg",
           role: d.role,
           content: d.content
         });
       });
 
-      // Empaquetar eventos (clips)
-      evSnap.forEach(ev => {
-        const d = ev.data();
-        if (d.type === "clips_generated" && Array.isArray(d.clips)) {
-          timeline.push({
-            t: d.createdAt?.toMillis?.() || (d.createdAt?.seconds ? d.createdAt.seconds * 1000 : 0),
-            kind: "clips",
-            data: d
-          });
-        }
+      promptSnap.forEach(p => {
+        const d = p.data() || {};
+        timeline.push({
+          t: d.createdAt?.toMillis?.() || (d.createdAt?.seconds ? d.createdAt.seconds * 1000 : Date.now()),
+          kind: "prompt",
+          data: d
+        });
       });
 
-      // Orden ascendente por tiempo
-      timeline.sort((a,b) => a.t - b.t);
+      timeline.sort((a, b) => a.t - b.t);
 
-      // Pintar en el orden real (intercalado)
       for (const item of timeline) {
         if (item.kind === "msg") {
           chatHistory.push({ role: item.role, content: item.content });
-          const content = item.content || "";
-          const roleLbl = item.role === "user" ? "Usuario" : "IA";
-
-          // ¿Es un mensaje de "video listo" con título y URL en la siguiente línea?
-          const mm = content.match(/^🎬\s*Video listo:\s*(.*?)\s*\n(https?:\/\/\S+)/);
-          if (mm) {
-            const safeTitle = escapeHtml(mm[1] || "Clip generado");
-            const outUrl    = escapeHtml(mm[2]);
-
-            const card = `
-              <div class="meta">🎬 Video guardado</div>
-              <div style="margin-top:8px; padding:10px; background:#f1f5f910; border-radius:10px;">
-                <div style="font-weight:700; margin-bottom:6px;">${safeTitle}</div>
-                <video src="${outUrl}" controls playsinline style="max-width:100%; border-radius:12px;"></video>
-              </div>
-            `;
-            append(card, "IA");
-          } else {
-            append(escapeHtml(content), roleLbl);
-          }
-
-        } else {
-          const d = item.data;
-
-          // Actualiza estado para 'regenerar'
-          lastLyrics = d.lyrics || lastLyrics;
-          sessionState[sid].lastLyrics = lastLyrics;
-          sessionState[sid].lastChunks = new Array((d.clips || []).length).fill(null);
-          const rb = document.getElementById("regenBtn");
-          if (rb) rb.disabled = !sessionState[sid].lastLyrics;
-
-          // Render de clips con botón "Generar video" (sanitizado)
-          const SUBS_REGEX = /Subtítulos?\s+realizados?\s+por\s+la\s+comunidad\s+de\s+Amara\.org/ig;
-
-          const safeClips = (d.clips || [])
-            .map(c => {
-              const fragClean = String(c.fragment || "").replace(SUBS_REGEX, "").trim();
-              if (!fragClean) return null; // descarta si quedó vacío
-              return { ...c, fragment: fragClean };
-            })
-            .filter(Boolean);
-
-          const html = safeClips.map((c,i)=>{
-            const frag = escapeHtml(c.fragment || "");
-            const pr   = escapeHtml(c.prompt   || "");
-            const dur  = Math.min(10, Math.max(5, Math.round((c.duration_s || 7))));
-            return `
-              <div style="margin:10px 0; padding:10px; background:#f1f5f910; border-radius:10px;">
-                <div class="meta">Fragmento ${i+1} (${dur}s)</div>
-                <div style="margin:6px 0;"><i>${frag}</i></div>
-                <div><b>Prompt:</b> ${pr}</div>
-                <button class="btn" style="margin-top:8px;"
-                        data-fragment="${frag}"
-                        data-prompt="${pr}"
-                        onclick="copyPort(this)">
-                  Copiar en portapapeles
-                </button>
-              </div>`;
-          }).join("");
-
-          append(html, "IA");
-        }
-      }
-      // await saveMessage("system", "Historial cargado en UI");
-      // try { await autoFixFailedVideos("runway/"); } catch(e) { console.warn("autoFixFailedVideos error:", e); }
-    }
-
-    // ======= CORE =======
-    async function send() {
-      if(!currentUser){ append("Debes iniciar sesión para enviar mensajes.", "IA"); return; }
-
-      const input = document.getElementById("input");
-      const userMsg = input.value.trim();
-      if (!userMsg) return;
-
-      // limpia y bloquea inmediatamente
-      input.value = "";
-      input.disabled = true;
-      document.querySelector(".send-btn").disabled = true;
-
-      append(escapeHtml(userMsg), "Usuario");
-      chatHistory.push({ role:"user", content:userMsg });
-      await saveMessage("user", userMsg);
-
-      append(`<span class="meta">Procesando...</span>`, "IA");
-      
-
-      try {
-        // >>> estado del chat ACTIVO
-        const st = (sessionState && currentSessionId) ? (sessionState[currentSessionId] || {}) : {};
-        const baseLyrics = st.lastLyrics || lastLyrics;
-        const baseCount  = (Array.isArray(st.lastChunks) && st.lastChunks.length)
-          ? st.lastChunks.length
-          : (Array.isArray(lastChunks) && lastChunks.length ? lastChunks.length : 20);
-
-        // Re-generar en N fragmentos
-        const m = userMsg.match(/(re)?genera(?:lo)?(?:\s*de nuevo)?\s*(?:solo\s*)?en\s*(\d+)\s*fragmentos?/i);
-        if(m && baseLyrics){
-          const n = Math.max(1, Math.min(20, parseInt(m[2],10)));
-          //document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-          append(`<span class="meta">Re-generando en ${n} fragmentos…</span>`, "IA");
-          await processLyricsAndShowPrompts(baseLyrics, n);
-          input.disabled = false; document.querySelector(".send-btn").disabled = false; input.focus();
-          return;
-        }
-
-        // (forzar modo charla SIEMPRE para texto)
-        const guidance = await smallAnswer(userMsg);
-        // document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-        append(guidance, "IA");
-        chatHistory.push({ role:"assistant", content: guidance });
-        await saveMessage("assistant", guidance);
-
-      } catch (e) {
-        //document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-        append("Error procesando la solicitud.", "IA");
-      } finally {
-        input.disabled = false;
-        document.querySelector(".send-btn").disabled = false;
-        input.focus();
-      }
-    }
-
-    function safeParseClipsJSON(raw) {
-      let s = String(raw ?? "").trim();
-
-      // Limpia fences tipo ```json ... ```
-      if (s.startsWith("```")) {
-        s = s.replace(/^```(?:json)?\s*/i, "").replace(/```$/,"").trim();
-      }
-
-      // Extrae el primer bloque { ... } si hay texto alrededor
-      const m = s.match(/\{[\s\S]*\}/);
-      if (m) s = m[0];
-
-      // Arreglos comunes
-      s = s.replace(/,\s*([}\]])/g, "$1"); // comas colgantes
-
-      const obj = JSON.parse(s);
-
-      if (!obj || !Array.isArray(obj.clips)) {
-        throw new Error("Invalid schema (missing clips[])");
-      }
-
-      obj.clips = obj.clips.map(c => ({
-        fragment: String(c.fragment || "").trim(),
-        prompt: String(c.prompt || "").trim(),
-        duration_s: Math.max(5, Math.min(10, parseInt(c.duration_s, 10) || 6)),
-      })).filter(c => c.fragment && c.prompt);
-
-      if (!obj.clips.length) throw new Error("Empty clips");
-      return obj;
-    }
-
-    async function handleFile(file) {
-      if(!currentUser){ append("Debes iniciar sesión para subir archivos.", "IA"); return; }
-
-      append(`📥 Archivo recibido: <b>${escapeHtml(file.name)}</b>`, "IA");
-      await saveMessage("system", `Archivo recibido: ${file.name}`);
-
-      if (file.type.startsWith("audio/")) {
-        const form = new FormData();
-        form.append("audio", file);
-        let lyricsText = "";
-        append(`<span class="meta">Transcribiendo audio…</span>`, "IA");
-        try {
-          const res = await fetch(api("/transcribe"), { method: "POST", body: form });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          lyricsText = (data.text || "").trim();
-        } catch (e) {
-          //document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-          append("⚠️ Error al transcribir el audio. Verifica tu backend /transcribe.", "IA");
-          return;
-        }
-        // document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-        if (!lyricsText) { append("No se pudo extraer texto útil del audio.", "IA"); return; }
-        await processLyricsAndShowPrompts(lyricsText);
-      }
-      else if (file.name.toLowerCase().endsWith(".txt")) {
-        const text = await file.text();
-        await processLyricsAndShowPrompts(text);
-      }
-      else {
-        append("Formato no soportado. Usa audio (mp3/wav/m4a) o .txt.", "IA");
-      }
-    }
-
-    async function nuevoChat(){
-      if(!currentUser){ alert("Debes iniciar sesión para crear un chat."); return; }
-      const sid = "sess_" + Math.random().toString(36).slice(2) + Date.now();
-      sessionState[sid] = { lastLyrics: "", lastChunks: [] };
-      lastLyrics = ""; lastChunks = [];
-      const rb = document.getElementById("regenBtn"); if (rb) rb.disabled = true;
-      currentSessionId = sid;
-      await db.collection("sesiones").doc(sid).set({
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        modeloId: clienteActual || "modelo_1_0",
-        contexto: CONTEXTO || "",
-        ownerUid: currentUser.uid,
-        ownerEmail: currentUser.email || null,
-        status: "activa",
-        lastMessage: ""
-      });
-      setTitleEnabled(true);
-      tituloInput.value = "";
-      document.getElementById("chat").innerHTML = "";
-      append(`<span class="meta">Nuevo chat creado: ${sid}</span>`, "IA");
-      chatHistory = [];
-      await listarSesiones();
-    }
-
-    function selectHistItem(sid){
-      const panel = document.getElementById("historialPanel");
-      if (!panel) return;
-      [...panel.querySelectorAll(".hist-item")].forEach(el=>{
-        el.classList.toggle("selected", el.dataset.sid === sid);
-      });
-    }
-
-    function splitLyrics(lyrics, maxFragments = 20) {
-      const lines = lyrics.replace(/\r/g, "").split("\n").map(s => s.trim()).filter(Boolean);
-      const chunks = []; let buf = [];
-      for (const line of lines) {
-        buf.push(line);
-        if (buf.join(" ").length > 120 || buf.length >= 2) { chunks.push(buf.join(" ")); buf = []; }
-      }
-      if (buf.length) chunks.push(buf.join(" "));
-      return chunks.slice(0, maxFragments);
-    }
-
-async function generateVideoPromptsFromChunks(chunks) {
-  // Tomamos las últimas 10 intervenciones del usuario para dar estilo/contexto
-  const prevContext = chatHistory
-    .filter(m => m.role === "user" || m.role === "assistant")
-    .slice(-12)
-    .map(m => `${m.role.toUpperCase()}: ${m.content}`)
-    .join("\n");
-
-  // Prompt de sistema (tu plantilla) + continuidad
-  const sys = (PROMPT_CHUNKS || "⚠️ Falta prompt_chunks en cliente")
-    + "\n\nNever include on-screen text or captions; do not add any 'On-screen text:' lines; keep all text off-screen."
-    + "\n\nUse the provided style_guide to enforce strict continuity across all clips (palette, camera, lighting, cadence, transitions, recurring elements, text timing, tone)."
-    + "\n\nReturn the clips STRICTLY via a function call named submit_clips.";
-
-  const sid = currentSessionId || null;
-  let styleGuide = (sid && sessionState[sid]?.styleGuide) ? sessionState[sid].styleGuide : "";
-  if (!styleGuide) {
-    const def = (() => { try { return JSON.parse(localStorage.getItem('defaultStyleGuide') || 'null'); } catch { return null; } })();
-    styleGuide = def?.guide || "";
-  }
-
-  const previousClips = (currentSessionId && sessionState[currentSessionId]?.lastClips) || [];
-  const songSchema = `Niños preguntan → el lobo responde en el siguiente fragmento. Mantén continuidad de bosque, paleta y tensión progresiva. Identifica quién habla/actúa en cada clip.`;
-
-  const user = {
-    contexto: CONTEXTO || "",
-    conversation_context: prevContext,   // renombrado para claridad
-    style_guide: styleGuide,
-    song_schema: songSchema,
-    previous_clips: previousClips,
-    chunks
-  };
-
-  // 👉 Cambios clave:
-  // 1) Modelo más capaz y barato que 3.5: gpt-4o-mini
-  // 2) Definimos un 'tool' (function) con JSON Schema
-  // 3) 'tool_choice' fuerza que la salida sea un function call (JSON garantizado)
-  const resp = await fetch(api("/chat"), {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: JSON.stringify(user) }
-      ],
-      temperature: 0.6,
-      max_tokens: 1200,
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "submit_clips",
-            description: "Return the video prompts as an array of clips.",
-            parameters: {
-              type: "object",
-              properties: {
-                clips: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      fragment: { type: "string", description: "Short lyric fragment or subtitle slice" },
-                      prompt:   { type: "string", description: "Camera/scene description for T2V" },
-                      duration_s: {
-                        type: "integer",
-                        minimum: 5,
-                        maximum: 10,
-                        description: "Clip duration in whole seconds (5–10)"
-                      }
-                    },
-                    required: ["fragment", "prompt", "duration_s"],
-                    additionalProperties: false
-                  },
-                  minItems: 1
-                }
-              },
-              required: ["clips"],
-              additionalProperties: false
+          append(
+            escapeHtml(item.content || ""),
+            item.role === "user" ? "Usuario" : "IA",
+            item.t
+          );
+        } else if (item.kind === "prompt") {
+          renderPromptCard({
+            model: {
+              id: item.data.modelId || "",
+              name: item.data.modelName || item.data.provider || "Modelo",
+              mode: item.data.mode || "",
+              provider: item.data.provider || ""
+            },
+            prompt_package: {
+              prompt: item.data.prompt || "",
+              negative: item.data.negative || "",
+              params: item.data.params || {}
             }
-          }
-        }
-      ],
-      tool_choice: { type: "function", function: { name: "submit_clips" } }
-    })
-  });
-
-  const data = await resp.json();
-
-  // Si el modelo obedeció, habrá tool_calls con arguments (JSON válido SIEMPRE)
-  const choice = data?.choices?.[0];
-  const toolCall = choice?.message?.tool_calls?.[0];
-
-  if (!toolCall || toolCall.type !== "function" || toolCall.function?.name !== "submit_clips") {
-    // Fallback hiperseguro por si algo raro pasa:
-    console.warn("No tool call; raw:", data);
-    // Intenta tu parser tolerante si quieres (opcional):
-    const raw = String(choice?.message?.content || "");
-    try {
-      const obj = safeParseClipsJSON(raw); // ya existe en tu código
-      return Array.isArray(obj.clips) ? obj.clips : [];
-    } catch {
-      return [];
-    }
-  }
-
-    // Parse directo de arguments (JSON siempre bien formado)
-    let args;
-    try {
-      args = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("No pude parsear arguments del tool_call:", e, toolCall.function?.arguments);
-
-      // 🔧 Salvataje: extraer solo objetos de clip completos y armar { clips: [...] }
-      const clipped = [];
-      const raw = String(toolCall.function.arguments || "");
-
-      // Regex tolerante: toma objetos que tengan fragment, prompt y duration_s completos
-      const re = /\{[^{}]*"fragment"\s*:\s*"[^"]*"[^{}]*"prompt"\s*:\s*"[^"]*"[^{}]*"duration_s"\s*:\s*\d+[^{}]*\}/gs;
-      const matches = raw.matchAll(re);
-      for (const m of matches) {
-        try {
-          const obj = JSON.parse(m[0]);
-          clipped.push({
-            fragment: String(obj.fragment || "").trim(),
-            prompt: String(obj.prompt || "").trim(),
-            duration_s: Math.max(5, Math.min(10, parseInt(obj.duration_s, 10) || 6)),
           });
-        } catch {}
+        }
       }
-      return clipped.length ? clipped : [];
+
+      await loadContextFiles();
+      selectHistItem(sid);
+      updateInputVisibility();
     }
 
-  const clips = Array.isArray(args?.clips) ? args.clips : [];
-  // Normaliza y clampa duración (5–10)
-  return clips.map(c => ({
-    fragment: String(c.fragment || "").trim(),
-    prompt: String(c.prompt || "").trim(),
-    duration_s: Math.max(5, Math.min(10, parseInt(c.duration_s, 10) || 6)),
-  })).filter(c => c.fragment && c.prompt);
-}
-
-    async function processLyricsAndShowPrompts(lyricsText, maxFragments = 20) {
-      //document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-      const cleaned = lyricsText.trim();
-      if (!cleaned) { append("No encontré contenido en el texto proporcionado.", "IA"); return; }
-
-      const chunks = splitLyrics(cleaned, maxFragments);
-      if (!chunks.length) { append("No encontré fragmentos útiles en la letra.", "IA"); return; }
-
-      append(`🎼 Detecté <b>${chunks.length}</b> fragmentos. Generando prompts de video…`, "IA");
-
-      try {
-        const clips = await generateVideoPromptsFromChunks(chunks);
-        const SUBS_REGEX = /Subtítulos?\s+realizados?\s+por\s+la\s+comunidad\s+de\s+Amara\.org/i;
-        const filtered = (clips || [])
-          .map(c => ({
-            ...c,
-            fragment: String(c.fragment || "").replace(SUBS_REGEX, "").trim()
-          }))
-          .filter(c => c.fragment); // si el fragmento quedaba vacío, lo descartamos
-        if (!filtered.length) { append("No se pudieron generar prompts. Revisa el texto.", "IA"); return; }
-
-        const vr  = (document.getElementById("videoRatio")||{}).value || "9:16";
-        const vd  = parseInt((document.getElementById("videoDuration")||{}).value, 10) || 8;
-        const ast = (document.getElementById("animStyle")||{}).value || "2D Cartoon";
-        const html = filtered.map((c, i) => {
-          const frag = escapeHtml(c.fragment || ""); 
-          const pr   = escapeHtml(c.prompt || "");
-          const dur  = Math.min(10, Math.max(5, Math.round(c.duration_s || 7)));
-          return `
-            <div style="margin:10px 0; padding:10px; background:#f1f5f910; border-radius:10px;">
-              <div class="meta">Fragmento ${i+1} (${dur}s)</div>
-              <div style="margin:6px 0;"><i>${frag}</i></div>
-              <div><b>Prompt:</b> ${pr}</div>
-              <button class="btn" style="margin-top:8px;"
-                      data-fragment="${frag}"
-                      data-prompt="${pr}"
-                      data-ratio="${vr}"
-                      data-seconds="${vd}"
-                      data-style="${ast}"
-                      onclick="copyPort(this)">
-                  Copiar en portapapeles
-              </button>
-            </div>`;
-        }).join("");
-        // document.querySelectorAll(".ia .meta").forEach(el => el.parentNode.remove());
-        append(html, "IA");
-
-        // continuidad + historial por usuario
-        lastLyrics = cleaned; lastChunks = chunks;
-        const summary = clips.map((c,i)=>`[${i+1}] ${c.fragment?.slice(0,80) || ""}`).join(" | ");
-        chatHistory.push({ role: "assistant", content: `Se generaron ${clips.length} prompts para estos fragmentos: ${summary}` });
-        // await saveMessage("assistant", `Generé ${clips.length} prompts.`);
-        await saveMessage("assistant", `Prompts generados correctamente.`);
-        await saveClipsToHistory({ modeloId: clienteActual || "modelo_1_0", lyrics: cleaned, clips: filtered });
-        sessionState[currentSessionId] = sessionState[currentSessionId] || {};
-        sessionState[currentSessionId].lastLyrics = cleaned;
-        sessionState[currentSessionId].lastChunks = chunks;
-        sessionState[currentSessionId].lastClips = filtered; 
-
-        const rb = document.getElementById("regenBtn");
-        if (rb) rb.disabled = false;
-      } catch (e) {
-        append("⚠️ Error generando prompts: " + escapeHtml(e.message || e), "IA");
-      }
-    }
-
-    async function smallAnswer(question) {
-      const sysBase = PROMPT_SMALLANSWER || "⚠️ Falta prompt_smallanswer en cliente";
-      const sys = [sysBase, CONTEXTO ? `Contexto del modelo:\n${CONTEXTO}` : ""].filter(Boolean).join("\n\n");
-
-      // 👇 Toma las últimas ~12 intervenciones reales (usuario/asistente)
-      const history = chatHistory
-        .filter(m =>
-          (m.role === "user" || m.role === "assistant") &&
-          !/"\s*(clips|chunks)\s*"\s*:/.test(String(m.content || ""))
-        )
-        .slice(-12);
-
-      const messages = [
-        { role: "system", content: sys },
-        ...history,
-        { role: "user", content: question }
-      ];
-
-      const resp = await fetch(api("/chat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          temperature: 0.4,
-          max_tokens: 180
-        })
-      });
-      const data = await resp.json();
-      if (!data.choices) return "No pude generar una respuesta ahora.";
-      return data.choices[0].message.content.trim();
-    }
-
-    function regen(n = null){
-      const st = (sessionState && currentSessionId) ? (sessionState[currentSessionId] || {}) : {};
-      const lyrics = st.lastLyrics || lastLyrics; // fallback por si no hay estado guardado
-      const count  = n 
-        || (Array.isArray(st.lastChunks) && st.lastChunks.length ? st.lastChunks.length
-        : (Array.isArray(lastChunks) && lastChunks.length ? lastChunks.length : 20));
-
-      if (!lyrics) { append("No hay letra previa en este chat.", "IA"); return; }
-
-      append(`<span class="meta">Re-generando prompts…</span>`, "IA");
-      return processLyricsAndShowPrompts(lyrics, count);
-    }
-
-    // ======= UTIL =======
-    function escapeHtml(str) {
-      return (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-
-    // ===== Estilos: presets por etiqueta del <select id="animStyle"> =====
-    const STYLE_PRESETS = [
-      { match: /^2d cartoon$/i, pos: "Style: flat 2D cartoon, cel shading, bold black outlines, solid flat colors, simple shapes.", neg: "photorealistic, 3D render, PBR, gradients, complex textures" },
-      { match: /^3d cartoon$/i, pos: "Style: stylized 3D cartoon, soft lighting, clean materials, subtle rim light, non-photoreal.", neg: "flat 2D, thick outlines, posterized shading" },
-      { match: /^anime$/i, pos: "Style: anime cel-shaded, clean line art, expressive faces, limited palette, speed lines when needed.", neg: "photorealistic, CGI heavy textures, western cartoon look" },
-      { match: /^ghibli$/i, pos: "Style: Ghibli-inspired, soft painterly backgrounds, gentle cel lines, warm color harmony.", neg: "harsh speculars, gritty textures, photoreal PBR" },
-
-      { match: /^stop-?motion$/i, pos: "Style: stop-motion look, tactile materials, slight staccato frame stepping, handmade feel.", neg: "perfectly smooth motion, plastic CG sheen" },
-      { match: /^claymation$/i, pos: "Style: claymation, visible fingerprints/soft dents suggestion, matte clay surfaces, stepped frames.", neg: "metallic speculars, hyper-smooth motion" },
-      { match: /^cut-out animation$/i, pos: "Style: cut-out animation, paper layers, hinge-like motions, simple shadows.", neg: "volumetric lighting, complex textures" },
-      { match: /^interlocking plastic bricks$/i, pos: "Style: LEGO-like bricks, studded surfaces, modular assembly, playful stop-motion vibe.", neg: "cloth/fabric textures, organic deformation" },
-      { match: /^papercraft animation$/i, pos: "Style: papercraft, layered cardstock, crisp edges, soft paper shadow, slight paper fiber hint.", neg: "metallic reflections, photoreal PBR" },
-      { match: /^whiteboard animation$/i, pos: "Style: whiteboard animation, black marker strokes, hand drawing reveal, white background.", neg: "color fills, photoreal shading, gradients" },
-      { match: /^line-art animation$/i, pos: "Style: line-art animation, monochrome clean lines, minimal fills, flat background.", neg: "textures, gradients, heavy shading" },
-      { match: /^flat 2d$/i, pos: "Style: flat 2D, geometric shapes, solid fills, no gradients, minimal shading.", neg: "photoreal, 3D depth cues, textures" },
-      { match: /^vector animation$/i, pos: "Style: vector animation, crisp bezier lines, flat fills, perfect edges.", neg: "bitmap noise, painterly textures, gradients" },
-      { match: /^cel-shaded$/i, pos: "Style: cel-shaded, sharp shadow bands, bold outlines, toon lighting.", neg: "soft GI, film grain, realistic materials" },
-      { match: /^toon shader$/i, pos: "Style: toon shader, quantized lighting, flat color steps, comic outlines.", neg: "photoreal PBR, microtextures" },
-      { match: /^hand-drawn$/i, pos: "Style: hand-drawn, visible strokes, slight wobble, imperfect lines, limited palette.", neg: "CG polish, perfect symmetry, realistic textures" },
-
-      { match: /^watercolor animation$/i, pos: "Style: watercolor, soft edges, pigment bloom, paper texture suggestion, gentle bleed.", neg: "hard speculars, PBR, crisp gradients" },
-      { match: /^ink-wash animation$/i, pos: "Style: ink-wash (sumi-e), fluid brushwork, grey washes, absorbent paper look.", neg: "CG reflections, hard gradients" },
-      { match: /^pencil-sketch animation$/i, pos: "Style: pencil sketch, cross-hatching, graphite variation, paper grain hint.", neg: "solid fills, glossy surfaces, photoreal" },
-      { match: /^chalkboard animation$/i, pos: "Style: chalkboard, chalk dust strokes, dark slate background, smear hints.", neg: "clean vector lines, glossy shading" },
-      { match: /^marker-style animation$/i, pos: "Style: marker style, alcohol-marker streaks, saturated flats, slight bleed.", neg: "photoreal shading, textured materials" },
-      { match: /^crayon animation$/i, pos: "Style: crayon, waxy strokes, visible grain, child-like simplicity.", neg: "clean vectors, gradients, specular highlights" },
-      { match: /^oil-paint animation$/i, pos: "Style: oil paint, impasto strokes suggestion, warm glazing, canvas texture hint.", neg: "flat vector look, CG reflections" },
-      { match: /^gouache animation$/i, pos: "Style: gouache, opaque matte strokes, graphic shapes, dry brush edges.", neg: "photoreal, metallic shines" },
-      { match: /^pastel animation$/i, pos: "Style: pastel, soft powdery strokes, smudged edges, gentle tones.", neg: "hard edges, PBR highlights" },
-      { match: /^collage animation$/i, pos: "Style: collage, cut paper/photos, mixed media layers, rough edges.", neg: "uniform CG materials, photoreal integration" },
-
-      { match: /^pixel art$/i, pos: "Style: pixel art, crisp pixels, limited palette, no subpixel blends, nearest-neighbor look.", neg: "anti-aliasing, gradients, motion blur" },
-      { match: /^8-bit$/i, pos: "Style: 8-bit pixel art, 160x144–256x240 aesthetic, strict palette, chiptune era look.", neg: "smooth gradients, realistic lighting" },
-      { match: /^16-bit$/i, pos: "Style: 16-bit pixel art, SNES/Genesis era, richer palette, parallax hint.", neg: "photoreal, smooth shading" },
-
-      { match: /^low-poly animation$/i, pos: "Style: low-poly, faceted models, flat shading, visible polygons, simplified materials.", neg: "high-poly detail, normal maps, photoreal PBR" },
-      { match: /^isometric animation$/i, pos: "Style: isometric, 3/4 view, orthographic feel, clean tiling, consistent angles.", neg: "perspective lens effects, depth-of-field" },
-      { match: /^2\.5d parallax$/i, pos: "Style: 2.5D parallax, layered planes, depth by parallax, flat art assets.", neg: "true 3D camera or photoreal depth cues" },
-      { match: /^rubber-hose$/i, pos: "Style: 1930s rubber-hose, noodle limbs, pie-eyes, jittery looped motion.", neg: "anatomical realism, detailed textures" },
-      { match: /^limited animation$/i, pos: "Style: limited animation, held frames, mouth cycles, reused poses, economical motion.", neg: "fluid high-FPS motion, complex secondary actions" },
-      { match: /^rotoscope$/i, pos: "Style: rotoscope, traced live-action motion, stylized lines/fills, consistent outlines.", neg: "stiff puppet motion, exaggerated squash-and-stretch" },
-      { match: /^motion graphics$/i, pos: "Style: motion graphics, clean shapes/typography, smooth easing, design-driven.", neg: "hand-drawn wobble, painterly textures" },
-      { match: /^kinetic typography$/i, pos: "Style: kinetic typography, bold type, synchronized moves to beats, clean transitions.", neg: "busy textures, heavy gradients, photoreal backdrops" },
-      { match: /^motion comic$/i, pos: "Style: motion comic, comic panels, halftones/screentones, minimal animation per panel.", neg: "photoreal, full-frame cinematic lighting" }
-    ];
-
-    // Devuelve preset según la etiqueta elegida; si no hay, respeta el texto tal cual
-    function pickStylePresetByLabel(styleLabel) {
-      const found = STYLE_PRESETS.find(p => p.match.test(styleLabel));
-      return found ? found : { pos: `Style: ${styleLabel}.`, neg: "" };
-    }
-
-    // Construye el prompt final priorizando estilo y negativos suaves
-    // Construye el prompt final con continuidad (si hay styleGuide)
-    function buildT2VPrompt({ scenePrompt, ratio, seconds, styleLabel, styleGuide=null, noAudio=true, noText=true }) {
-       const applyAll = "GLOBAL: One style for EVERYTHING, every frame. No mixing. Omit elements that can't match the style.";
-      const preset = pickStylePresetByLabel(styleLabel);
-      const head = styleGuide ? `${styleGuide}\n${applyAll}\n${preset.pos}` : `${applyAll}\n${preset.pos}`;
-      const neg  = preset.neg ? `\nNEGATIVE: ${preset.neg}.` : "";
-      const cleanedScene = String(scenePrompt || "")
-      .replace(/\b(on[-\s]?screen\s*text|text\s*on\s*screen)\s*:\s*.*?(?=\.|\n|$)/gmi, "")
-      .replace(/\s{2,}/g, " ")
-      .replace(/\s+\./g, ".")
-      .trim();
-      return (
-        `${head}
-Scene: ${cleanedScene}
-Video ratio: ${ratio}.
-${noText ? "No text on screen." : ""}`
-  ).trim();
-    }
-    
-    async function safeJson(res, label){
-      const t = await res.text();
-      try { return JSON.parse(t); }
-      catch { throw new Error(`${label} no-JSON (${res.status}): ${t.slice(0,200)}`); }
-    }
-
-    async function copyPort(btn){
-      try {
-        // 1) Cargar payload desde el botón/UI
-        const payload = {
-          fragment: btn.dataset.fragment || "",
-          prompt:   btn.dataset.prompt   || "",
-          ratio:    btn.dataset.ratio    || (document.getElementById("videoRatio")?.value || "9:16"),
-          seconds:  parseInt(btn.dataset.seconds || (document.getElementById("videoDuration")?.value), 10) || 8,
-          style:    btn.dataset.style    || (document.getElementById("animStyle")?.value || "2D Cartoon")
-        };
-
-        // 2) Unificar estado y leer guía de estilo de forma segura
-        const sid = window.currentSessionId || null;
-        window.sessionState = window.sessionState || {};                 // evita undefined
-        const def = (() => { try {
-          return JSON.parse(localStorage.getItem("defaultStyleGuide") || "null");
-        } catch { return null; } })();
-
-        const styleGuideFromSession = sid && window.sessionState[sid]?.styleGuide
-          ? window.sessionState[sid].styleGuide
-          : null;
-        const styleGuide = styleGuideFromSession || def?.guide || null;
-
-        // 3) Construir prompt (usa tu helper existente)
-        const prompt = buildT2VPrompt({
-          scenePrompt: payload.prompt,
-          ratio: payload.ratio,
-          styleLabel: payload.style,
-          styleGuide: styleGuide,  // si no hay guía, pasa null
-          noAudio: true,
-          noText: true
-        });
-
-        // 4) Copiar al portapapeles (prompt + guía)
-        try {
-          await navigator.clipboard.writeText(`${prompt}`);
-          showClipboardTab("Copiado en portapapeles.");
-        } catch (e) {
-          showClipboardTab("Ha ocurrido un error y no se pudo copiar.");
-        }
-
-        console.log(prompt);
-      } catch (err) {
-        append("⚠️ Error en generación de Prompt: " + escapeHtml(err?.message || String(err)), "IA");
-      }
-    }
-
-function showClipboardTab(text = "Copiado en portapapeles", type = "ok") {
-  const css = getComputedStyle(document.documentElement);
-  const bg      = (css.getPropertyValue("--card").trim())    || "#171717";
-  const fg      = (css.getPropertyValue("--ink").trim())     || "#E9EEF2";
-  const border  = (css.getPropertyValue("--disabled").trim())|| "#2a2f37";
-  const accent1 = (css.getPropertyValue("--accent1").trim()) || "#C9E33A";
-  const accent2 = (css.getPropertyValue("--accent2").trim()) || "#DBEA50";
-  const errCol  = "#ef4444";
-
-  let el = document.getElementById("clipboardTab");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "clipboardTab";
-    el.setAttribute("role", "status");
-    el.setAttribute("aria-live", "polite");
-    document.body.appendChild(el);
-  }
-
-  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-
-  // Contenedor: grande, contraste alto
-  el.style.cssText = [
-    "position:fixed",
-    "top:22px",
-    "right:-620px",
-    "max-width:560px",
-    "z-index:99999",
-    `background:${bg}`,
-    `color:${fg}`,
-    `border:1px solid ${border}`,
-    "padding:18px 24px",
-    "border-radius:999px 0 0 999px",
-    "box-shadow:0 16px 40px rgba(0,0,0,.55)",
-    "font:700 20px/1.35 Montserrat, system-ui, Segoe UI, Roboto, Arial",
-    "display:flex",
-    "align-items:center",
-    "gap:14px",
-    "opacity:1",
-    "pointer-events:none",             // no bloquea clics debajo
-    "text-shadow:0 1px 0 rgba(0,0,0,.35)",
-    "mix-blend-mode:normal",
-    reduceMotion ? "transition:none" : "transition:right .35s ease"
-  ].join(";");
-
-  // HTML interno (sin overlays que tapen el texto)
-  el.innerHTML = `
-    <span style="
-      flex:0 0 auto; width:10px; height:100%;
-      border-radius:999px 0 0 999px;
-      background:${type === "ok" ? accent2 : errCol};
-      box-shadow:0 0 0 3px rgba(0,0,0,.12) inset;
-      align-self:stretch; margin:-18px 2px -18px -24px;
-    "></span>
-    <span style="
-      flex:0 0 auto; width:16px; height:16px; border-radius:999px;
-      background:${type === "ok" ? accent1 : errCol};
-      box-shadow:0 0 0 3px rgba(0,0,0,.18);
-    "></span>
-    <span id="clipboardTabText" style="letter-spacing:.2px; white-space:normal;">${text}</span>
-  `;
-
-  // Entrar
-  requestAnimationFrame(() => { el.style.right = "24px"; });
-
-  // Salir
-  clearTimeout(showClipboardTab._t);
-  showClipboardTab._t = setTimeout(() => { el.style.right = "-620px"; }, 2600);
-}
-
-
-    async function genVideo(btn){
-      try {
-        const payload = {
-          fragment: btn.dataset.fragment || "",
-          prompt:   btn.dataset.prompt   || "",
-          ratio:    btn.dataset.ratio    || (document.getElementById("videoRatio")?.value || "9:16"),
-          seconds:  parseInt(btn.dataset.seconds || (document.getElementById("videoDuration")?.value), 10) || 8,
-          style:    btn.dataset.style    || (document.getElementById("animStyle")?.value || "2D Cartoon")
-        };
-        const sid = currentSessionId || null;
-        const styleGuide =
-          sid && sessionState[sid]?.styleGuide
-            ? sessionState[sid].styleGuide
-            : (JSON.parse(localStorage.getItem("defaultStyleGuide") || "null")?.guide || null);
-        const locked     = sid && sessionState[sid]?.styleLocked ? true : false;
-
-        // Prompt compacto con tus campos
-        const prompt = buildT2VPrompt({
-          scenePrompt: payload.prompt,
-          ratio: payload.ratio,
-          styleLabel: payload.style,
-          styleGuide: locked ? styleGuide : (styleGuide || null), // si está bloqueada, SIEMPRE; si no, solo si existe
-          noAudio: true,
-          noText: true
-        });
-        console.log(prompt)
-
-        append(`<span class="meta">🎬 Creando video…</span>`, "IA");
-
-        // Mapear ratio amigable → formato que exige Runway
-        const RATIO_MAP = {
-          "16:9": "1280:720",
-          "9:16": "720:1280",
-          "1:1":  "960:960",
-          "4:3":  "1104:832",
-          "3:4":  "832:1104",
-          "21:9": "1584:672"
-        };
-        const ratioForRunway = RATIO_MAP[payload.ratio] || payload.ratio;
-
-        const create = await fetch(api("/runway/generate"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, ratio: ratioForRunway, duration: payload.seconds, model: "veo3" })
-        });
-
-        const task = await safeJson(create, "/runway/generate");
-        if (!create.ok) {
-          append("⚠️ Generador: " + escapeHtml(task?.error?.message || JSON.stringify(task)), "IA");
-          return;
-        }
-
-        const taskId = task.id || task.taskId || task.data?.id;
-        if (!taskId) { append("⚠️ No recibí task id del Generador.", "IA"); return; }
-
-        append(`<span class="meta">⏳ Tarea ${taskId} creada. Consultando estado…</span>`, "IA");
-
-        // Polling sencillo hasta 40 intentos (≈ 3–4 min)
-        for (let i = 0; i < 40; i++){
-          await new Promise(r => setTimeout(r, 5000));
-          const r = await fetch(api(`/runway/tasks/${taskId}`));
-          const info = await safeJson(r, "/runway/tasks");
-          const status = info.status || info.data?.state;
-
-          if (status === "SUCCEEDED" || status === "success") {
-            const outUrl = (info.output && info.output[0]) || info.data?.videoInfo?.videoUrl;
-            // Mostrar título y botón de descarga
-            const title = (payload.fragment || "").trim();
-            const safeTitle = escapeHtml(title || "Clip generado");
-
-            const html = `
-              <div class="meta">✅ Tarea lista</div>
-              <div style="margin-top:8px; padding:10px; background:#f1f5f910; border-radius:10px;">
-                <div style="font-weight:700; margin-bottom:6px;">${safeTitle}</div>
-                <video src="${escapeHtml(outUrl)}" controls playsinline style="max-width:100%; border-radius:12px;"></video>
-              </div>
-            `;
-            append(html, "IA");
-            if (!currentSessionId) await nuevoChat();
-            await saveMessage("assistant", `🎬 Video listo: ${(payload.fragment||"")}\n${outUrl}`);
-
-            if (!outUrl) { append("⚠️ Tarea finalizada pero sin URL de salida.", "IA"); return; }
-
-            // metadatos útiles para registrar
-            const meta = {
-              prompt: payload.prompt,
-              fragment: payload.fragment,
-              model: "veo3",
-              ratio: payload.ratio,
-              duration: payload.seconds,
-              style: payload.style,
-              sessionId: (window.currentSessionId || "")
-            };
-            const save = await fetch(api("/runway/save-to-firebase"), {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: outUrl, meta })
-            });
-            const saved = await safeJson(save, "/runway/save-to-firebase");
-            if (save.ok && saved.ok) {
-              const storagePath = saved.storagePath || "";
-              append(`<span class="meta">💾 Guardado en Firebase Storage: ${escapeHtml(storagePath)}</span>`, "IA");
-
-              try {
-                // 1) Obtener downloadURL estable desde Firebase
-                const urlFirebase = await firebase.storage().ref(storagePath).getDownloadURL();
-
-                // 2) Mostrar tarjeta usando SIEMPRE el URL de Firebase
-                const safeTitle2 = escapeHtml((payload.fragment || "Clip generado") + " (Firebase)");
-                const cardFirebase = `
-                  <div class="meta">✅ En Firebase</div>
-                  <div style="margin-top:8px; padding:10px; background:#f1f5f910; border-radius:10px;">
-                    <div style="font-weight:700; margin-bottom:6px;">${safeTitle2}</div>
-                    <video src="${escapeHtml(urlFirebase)}" controls playsinline style="max-width:100%; border-radius:12px;"></video>
-                  </div>
-                `;
-                append(cardFirebase, "IA");
-
-                // 3) Guardar también ese URL en el historial del chat (para que al recargar se vea desde Firebase)
-                await saveMessage("assistant", `🎬 Video listo: ${(payload.fragment||"")} (Firebase)\n${urlFirebase}`);
-              } catch (e) {
-                append(`⚠️ No pude obtener downloadURL de Firebase: ${escapeHtml(e.message||String(e))}`, "IA");
-              }
-            } else {
-              append(`⚠️ No se pudo guardar en Firebase: ${escapeHtml(saved?.error || JSON.stringify(saved))}`, "IA");
-            }
-
-            return;
-          }
-          if (status === "FAILED" || status === "error") {
-            append("⚠️ La tarea del Generador falló: " + escapeHtml(JSON.stringify(info)), "IA");
-            return;
-          }
-        }
-        append("⚠️ Timeout consultando la tarea del Generador.", "IA");
-      } catch (err) {
-        append("⚠️ Error en genVideo: " + escapeHtml(err?.message || String(err)), "IA");
-      }
-    }
-    window.genVideo = genVideo;
-
-    async function testSaveFirebase(){
-      const testUrl = "https://filesamples.com/samples/video/mp4/sample_640x360.mp4";
-      const meta = { fragment: "Clip de prueba (sin Gen)", model: "test" };
-      append(`<span class="meta">💾 Probando guardado en Firebase…</span>`, "IA");
-      try{
-        const r = await fetch(api("/runway/save-to-firebase"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: testUrl, meta })
-        });
-        const j = await r.json();
-        if (r.ok && j.ok){
-          append(`<span class="meta">✅ Guardado OK: ${escapeHtml(j.storagePath||"")}</span>`, "IA");
-        } else {
-          append(`⚠️ Error guardando: ${escapeHtml(j.error || JSON.stringify(j))}`, "IA");
-        }
-      }catch(e){
-        append(`⚠️ Error: ${escapeHtml(e.message||String(e))}`, "IA");
-      }
-    }
-    function getDefaultVideoPrefs() {
-      try { return JSON.parse(localStorage.getItem("defaultVideoPrefs") || "null"); } catch { return null; }
-    }
-    function applyVideoPrefs(prefs) {
-      if (!prefs) return;
-      const vr = document.getElementById("videoRatio");
-      const vd = document.getElementById("videoDuration");
-      const as = document.getElementById("animStyle");
-      if (vr && prefs.ratio)    vr.value = prefs.ratio;
-      if (vd && prefs.duration) vd.value = String(prefs.duration);
-      if (as && prefs.style)    as.value = prefs.style;
-    }
-    async function saveVideoPrefs(prefs){
-      const sid = window.currentSessionId || null;
-      window.sessionState = window.sessionState || {};
-      if (sid) {
-        window.sessionState[sid] = window.sessionState[sid] || {};
-        window.sessionState[sid].videoPrefs = prefs;
-        try {
-          await db.collection("sesiones").doc(sid).set({ videoPrefs: prefs }, { merge: true });
-          if (typeof append === "function") append("✅ Preferencias de video guardadas para la sesión.", "IA");
-        } catch(e) {
-          if (typeof append === "function") append(`⚠️ No pude guardar prefs de video en Firestore: ${e.message||String(e)}`, "IA");
-        }
-      } else {
-        try { localStorage.setItem("defaultVideoPrefs", JSON.stringify(prefs)); } catch {}
-        if (typeof append === "function") append("✅ Preferencias de video guardadas como predeterminadas.", "IA");
-      }
-    }
-    function currentVideoPrefsFromUI(){
-      const vr = (document.getElementById("videoRatio")||{}).value || "9:16";
-      const vd = parseInt((document.getElementById("videoDuration")||{}).value, 10) || 8;
-      const as = (document.getElementById("animStyle")||{}).value || "2D Cartoon";
-      return { ratio: vr, duration: vd, style: as };
-    }
-    function wireVideoPrefsListeners(){
-      const vr = document.getElementById("videoRatio");
-      const vd = document.getElementById("videoDuration");
-      const as = document.getElementById("animStyle");
-      const handler = () => saveVideoPrefs(currentVideoPrefsFromUI());
-      vr && vr.addEventListener("change", handler);
-      vd && vd.addEventListener("change", handler);
-      as && as.addEventListener("change", handler);
-    }
-  </script>
-  <!-- <button onclick="testSaveFirebase()" style="margin:12px; padding:8px 12px; border-radius:6px;">
-    Probar guardado Firebase (sin Generador)
-  </button> -->
-  <script>
-  async function loadFirebaseLibrary(prefix = "runaway/") {
-    const ref = firebase.storage().ref(prefix);
-    const { items } = await ref.listAll();
-    if (!items.length) {
-      append(`<span class="meta">No hay videos en Firebase (${prefix})</span>`, "IA");
-      return;
-    }
-    for (const obj of items) {
-      const url = await obj.getDownloadURL();
-      const name = obj.name;
-      const card = `
-        <div class="meta">📦 Firebase</div>
-        <div style="margin-top:8px; padding:10px; background:#f1f5f910; border-radius:10px;">
-          <div style="font-weight:700; margin-bottom:6px;">${escapeHtml(name)}</div>
-          <video src="${escapeHtml(url)}" controls playsinline style="max-width:100%; border-radius:12px;"></video>
-        </div>`;
-      append(card, "IA");
-    }
-  }
-
-  async function rehydrateHistoryFromFirebase(prefix = "runaway/") {
-    const ref = firebase.storage().ref(prefix);
-    const { items } = await ref.listAll();
-    const urlMap = {};
-    for (const it of items) urlMap[it.name] = await it.getDownloadURL();
-
-    document.querySelectorAll("video").forEach(v => {
-      try {
-        const u = new URL(v.currentSrc || v.src);
-        if (/cloudfront\.net|vertex-ai/.test(u.host)) {
-          const filename = u.pathname.split("/").pop();
-          if (urlMap[filename]) {
-            v.src = urlMap[filename];
-            append(`<span class="meta">🔁 Reemplazado por Firebase: ${escapeHtml(filename)}</span>`, "IA");
-          }
-        }
-      } catch(_) {}
-    });
-  }
-  async function autoFixFailedVideos(prefix = "runway/") {
-    // 1) Cargar índice de Firebase una sola vez
-    const ref = firebase.storage().ref(prefix);
-    const { items } = await ref.listAll();
-    const urlByName = {};
-    const list = [];
-    for (const it of items) {
-      const url = await it.getDownloadURL();
-      urlByName[it.name] = url;
-      list.push({ name: it.name, url });
-    }
-
-    // Helper: nombre desde URL o string
-    const getName = (u) => {
-      try { return new URL(u).pathname.split("/").pop(); }
-      catch { return String(u || "").split("/").pop(); }
-    };
-
-    // UI fallback: inserta un selector debajo del video fallado
-    function injectPicker(videoEl) {
-      // Evita duplicar pickers
-      if (videoEl.nextSibling && videoEl.nextSibling.dataset?.picker === "firebase") return;
-
-      const wrap = document.createElement("div");
-      wrap.dataset.picker = "firebase";
-      wrap.style = "margin-top:8px;background:#fff;border:1px solid #e2e8f6;border-radius:10px;padding:8px;";
-
-      const label = document.createElement("div");
-      label.className = "meta";
-      label.textContent = "No encontré coincidencia por nombre. Reemplaza este clip con un archivo de Firebase:";
-      wrap.appendChild(label);
-
-      const sel = document.createElement("select");
-      sel.style = "margin-top:6px;width:100%;padding:6px;border:1px solid #cfd8ea;border-radius:8px;background:#f8fbff;";
-      list.forEach(({name, url}) => {
-        const opt = document.createElement("option");
-        opt.value = url;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      });
-      wrap.appendChild(sel);
-
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.style = "margin-top:8px;";
-      btn.textContent = "Usar este archivo";
-      btn.onclick = () => {
-        const chosen = sel.value;
-        if (chosen) {
-          videoEl.src = chosen;
-          try { videoEl.load(); } catch {}
-          wrap.remove();
-        }
-      };
-      wrap.appendChild(btn);
-
-      // Inserta justo después del <video>
-      if (videoEl.parentNode) videoEl.parentNode.appendChild(wrap);
-    }
-
-    // 2) Intento de arreglo cuando falle el <video>
-    async function tryFix(videoEl) {
-      const src = videoEl.currentSrc || videoEl.src || "";
-      if (!src) return;
-
-      // Solo si era un enlace efímero
-      const isEphemeral = (() => {
-        try { const h = new URL(src).host; return /cloudfront\.net|vertex-ai/.test(h); }
-        catch { return /cloudfront\.net|vertex-ai/.test(src); }
-      })();
-      if (!isEphemeral) return;
-
-      const name = getName(src);
-
-      // Caso A: coincidencia exacta por nombre → reemplazo automático
-      if (urlByName[name]) {
-        console.log("🔁 Reemplazando video fallado por Firebase:", name);
-        videoEl.src = urlByName[name];
-        try { videoEl.load(); } catch {}
+    async function send() {
+      if (!currentUser) {
+        append("Debes iniciar sesión para enviar mensajes.", "IA");
         return;
       }
 
-      // Caso B: NO hay match → mostrar picker para que elijas manualmente SOLO en este video
-      injectPicker(videoEl);
+      if (!currentSessionId) {
+        setEmptyState("Debes crear un chat primero");
+        return;
+      }
+
+      const userMsg = inputEl.value.trim();
+      if (!userMsg) return;
+
+      if (!generatorActual) {
+        append("No hay generador disponible.", "IA");
+        return;
+      }
+
+      inputEl.value = "";
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+
+      append(escapeHtml(userMsg), "Usuario", Date.now());
+      chatHistory.push({ role: "user", content: userMsg });
+      await saveMessage("user", userMsg);
+
+      try {
+        const res = await fetch(api("/chat"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: userMsg,
+            sessionId: currentSessionId,
+            modelId: clienteActual,
+            generatorId: generatorActual,
+            history: chatHistory
+          })
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {}
+
+        if (!res.ok) {
+          append(escapeHtml(data?.error || "Error procesando la solicitud."), "IA");
+          return;
+        }
+
+        if (data.response && !data.prompt_package) {
+          append(escapeHtml(data.response), "IA");
+          chatHistory.push({ role: "assistant", content: data.response });
+          await saveMessage("assistant", data.response, data.intent || "conversation");
+        }
+
+        if (data.prompt_package) {
+          renderPromptCard(data);
+        }
+
+        try {
+          await db.collection("sesiones").doc(currentSessionId).set({
+            selectedModelId: clienteActual || null,
+            selectedGeneratorId: generatorActual || null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch {}
+      } catch (e) {
+        append("Error en el servidor.", "IA");
+      } finally {
+        inputEl.disabled = false;
+        sendBtn.disabled = false;
+        inputEl.focus();
+        await listarSesiones();
+        selectHistItem(currentSessionId);
+      }
     }
 
-    // 3) Enlaza el manejador SOLO para errores y reintenta si ya están fallados
-    document.querySelectorAll("video").forEach((v) => {
-      v.addEventListener("error", () => { tryFix(v); }, { once: true });
-      if (v.readyState === 0) { tryFix(v); } // por si ya apareció en error
+    async function uploadContextFiles(files) {
+      if (!currentUser || !currentSessionId || !files?.length) return;
+
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("sessionId", currentSessionId);
+
+        append(`<span class="meta">Subiendo archivo de contexto: ${escapeHtml(file.name)}</span>`, "IA");
+
+        try {
+          const res = await fetch(api("/context/upload"), {
+            method: "POST",
+            body: form
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            append(`No se pudo subir ${escapeHtml(file.name)}.`, "IA");
+            continue;
+          }
+        } catch {
+          append(`No se pudo subir ${escapeHtml(file.name)}.`, "IA");
+        }
+      }
+
+      await loadContextFiles();
+    }
+
+    async function loadContextFiles() {
+      const panel = document.getElementById("contextPanel");
+
+      if (!currentUser || !currentSessionId) {
+        panel.innerHTML = "<div class='context-empty'>No hay archivos de contexto.</div>";
+        return;
+      }
+
+      try {
+        const snap = await db.collection("sesiones")
+          .doc(currentSessionId)
+          .collection("context_files")
+          .get();
+
+        if (snap.empty) {
+          panel.innerHTML = "<div class='context-empty'>No hay archivos de contexto.</div>";
+          return;
+        }
+
+        panel.innerHTML = "";
+
+        snap.forEach(doc => {
+          const d = doc.data() || {};
+          const div = document.createElement("div");
+          div.className = "context-item";
+
+          const created = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+          const createdTxt = created
+            ? created.toLocaleDateString("es-ES", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" })
+            : "";
+
+          div.innerHTML = `
+            <div>
+              <div class="context-item-name">${escapeHtml(d.fileName || "archivo")}</div>
+              <div class="context-item-meta">${escapeHtml(d.role || "context")} · ${escapeHtml(d.mimeType || "")}${createdTxt ? " · " + escapeHtml(createdTxt) : ""}</div>
+            </div>
+          `;
+
+          div.style.cursor = "pointer";
+          div.onclick = () => {
+            const url = `https://firebasestorage.googleapis.com/v0/b/ikartoons-chatbot-7b2b6.firebasestorage.app/o/${encodeURIComponent(d.storagePath)}?alt=media`;
+            window.open(url, "_blank");
+          };
+          panel.appendChild(div);
+        });
+      } catch (err) {
+        panel.innerHTML = "<div class='context-empty'>Error cargando contexto</div>";
+      }
+    }
+
+    contextFileInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = "";
+      await uploadContextFiles(files);
     });
-  }
+    setUIEnabled(false);
   </script>
 </body>
-<!-- ========== STYLE GUIDE MODAL ========== -->
-<div id="styleGuideModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#fff;max-width:800px;width:92%;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden">
-    <div style="padding:12px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
-      <strong>Guía de estilo de la sesión</strong>
-      <button class="btn" onclick="closeStyleGuideModal()" style="background:#f3f4f6;color:#111;border:1px solid #d1d5db">Cerrar</button>
-    </div>
-    <div style="padding:12px 16px">
-      <p style="margin:0 0 8px;color:#475569">Esta guía se antepone a todos los prompts de la sesión para mantener continuidad (paleta, cámara, tono, etc.).</p>
-      <textarea id="styleGuideText" style="width:100%;height:240px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;"></textarea>
-      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap">
-        <div style="display:flex;gap:10px;align-items:center">
-          <label style="display:flex;gap:6px;align-items:center;font-size:14px;color:#111">
-            <input id="styleGuideLock" type="checkbox" checked />
-            Aplicar a todos los prompts de esta sesión
-          </label>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn secondary" onclick="resetStyleGuideFromPreset()">↺ Reset desde preset actual</button>
-          <button class="btn" onclick="saveStyleGuide()" style="background:#2563eb;color:#fff">Guardar guía</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// === Helpers existentes esperados: pickStylePresetByLabel, makeStyleBible (si no la tienes, usa la que te pasé antes) ===
-
-// Muestra modal con la guía actual o una sugerida a partir del estilo/ratio
-function openStyleGuideEditor(){
-  const ratio = (document.getElementById("videoRatio")?.value || "9:16");
-  const style = (document.getElementById("animStyle")?.value || "2D Cartoon");
-  const sid = window.currentSessionId || null;
-  window.sessionState = window.sessionState || {};
-  window.sessionState[sid] = window.sessionState[sid] || {};
-
-  const def = (() => { try { return JSON.parse(localStorage.getItem("defaultStyleGuide") || "null"); } catch { return null; } })();
-
-  const seed =
-    window.sessionState[sid].styleGuide
-    || def?.guide
-|| `Camera: street-level gentle dolly, stable (no DOF/motion blur).
-Framing: eye-level, clean compositions; centered close-ups when needed.
-Lighting: consistent to time of day.
-Characters: reuse same designs and props across clips.
-Tone: cheerful and community-focused.`;
-  document.getElementById("styleGuideModal").style.display = "flex";
-  document.getElementById("styleGuideText").value = seed;
-  document.getElementById("styleGuideLock").checked =
-    sid ? !!window.sessionState[sid].styleLocked : (def?.locked ?? true);
-}
-function closeStyleGuideModal(){
-  document.getElementById("styleGuideModal").style.display = "none";
-}
-
-async function saveStyleGuide(){
-  const sid = window.currentSessionId || null;
-  const guide = document.getElementById("styleGuideText").value.trim();
-  const locked = !!document.getElementById("styleGuideLock").checked;
-
-  window.sessionState = window.sessionState || {};
-
-  if (sid) {
-    // Guarda en la sesión activa
-    window.sessionState[sid] = window.sessionState[sid] || {};
-    window.sessionState[sid].styleGuide = guide;
-    window.sessionState[sid].styleLocked = locked;
-    try {
-      if (window.db) {
-        await db.collection("sesiones").doc(sid).set(
-          { styleGuide: guide, styleLocked: locked },
-          { merge: true }
-        );
-      }
-      if (typeof append === "function") append(`✅ Guía de estilo guardada para la sesión.`, "IA");
-    } catch (e) {
-      if (typeof append === "function") append(`⚠️ No pude guardar la guía en Firestore: ${e.message||String(e)}`, "IA");
-    }
-  } else {
-    // No hay sesión: guarda como predeterminada (fallback)
-    window.sessionState.__default = window.sessionState.__default || {};
-    window.sessionState.__default.styleGuide = guide;
-    window.sessionState.__default.styleLocked = locked;
-    try { localStorage.setItem("defaultStyleGuide", JSON.stringify({ guide, locked })); } catch {}
-    if (typeof append === "function") append(`✅ Guía guardada como predeterminada (se aplicará a la próxima sesión).`, "IA");
-  }
-
-  closeStyleGuideModal();
-}
-
-function resetStyleGuideFromPreset(){
-  const ratio = (document.getElementById("videoRatio")?.value || "9:16");
-  const style = (document.getElementById("animStyle")?.value || "2D Cartoon");
-  if (typeof makeStyleBible === "function") {
-    document.getElementById("styleGuideText").value = makeStyleBible(style, ratio);
-  } else {
-    document.getElementById("styleGuideText").value =
-`Camera: street-level gentle dolly, stable (no DOF/motion blur).
-Framing: eye-level, clean compositions; centered close-ups when needed.
-Lighting: consistent to time of day.
-Characters: reuse same designs and props across clips.
-Tone: cheerful and community-focused.`;
-  }
-}
-</script>
 </html>
